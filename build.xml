@@ -1,0 +1,75 @@
+<project name="SiteSearchService" default="SiteSearchService-Installation" basedir=".">
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo  Dependencies  oooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <import file="${projectsDir}/FgpUtil/build.xml" />
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="SiteSearchService-Installation" depends="FgpUtil-Installation,
+                                                         SiteSearchService-MavenInstallation,
+                                                         SiteSearchService/Service-Installation">
+    <ant target="defaultProjectInstall">
+      <property name="project" value="SiteSearchService" />
+    </ant>
+  </target>
+
+  <target name="SiteSearchService-MavenInstallation">
+    <ant target="mavenBuildProject">
+      <property name="project" value="SiteSearchService" />
+    </ant>
+    <property name="alreadyBuilt" value="true" />
+  </target>
+
+  <!-- ooooooooooooooooooooooo  Install Components  ooooooooooooooooooooooo -->
+
+  <target name="SiteSearchService/Service-Installation">
+    <ant target="defaultComponentInstall">
+      <property name="project" value="SiteSearchService" />
+      <property name="component" value="Service" />
+    </ant>
+    <!-- Comment for now; probably will want service JSON schema at some point -->
+    <!-- <ant target="SiteSearchService-Schema"/> -->
+  </target>
+
+  <target name="SiteSearchService-Schema" depends="installYarnBin">
+    <echo message="Resolving and merging JSON Schema files"/>
+    <exec dir="${targetDir}/bin"
+          executable="installSchema.sh"
+          failonerror="true"
+          failifexecutionfails="true">
+      <arg line="${projectsDir} ${targetDir}"/>
+    </exec>
+    <ant target="createSchemaJar"/>
+  </target>
+
+  <target name="createSchemaJar">
+    <echo message="Creating JSON schema jar file at ${targetDir}/lib/java/site-search-service-schema.jar"/>
+    <exec dir="${targetDir}/doc/SiteSearch/Service"
+          executable="jar"
+          failonerror="true"
+          failifexecutionfails="true">
+      <arg line="cf ${targetDir}/lib/java/site-search-service-schema.jar schema"/>
+    </exec>
+  </target>
+
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooo  Web Installation  oooooooooooooooooooooooo -->
+  <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
+
+  <target name="SiteSearchService-WebInstallation" depends="SiteSearchService-Installation,
+                                                            SiteSearchService/Service-WebInstallation"/>
+
+  <target name="SiteSearchService/Service-WebInstallation">
+    <!-- Comment for now; probably will want service RAML at some point -->
+    <!-- <antcall target="runRaml2Html">
+      <param name="inputFile" value="${targetDir}/doc/SiteSearch/Service/raml/api.raml"/>
+      <param name="outputFile" value="${htdocsTargetDir}/service-api.html"/>
+    </antcall> -->
+  </target>
+
+</project>
