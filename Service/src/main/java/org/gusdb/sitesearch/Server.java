@@ -1,8 +1,8 @@
 package org.gusdb.sitesearch;
 
 import org.glassfish.jersey.server.ResourceConfig;
-import org.gusdb.fgputil.server.ApplicationContext;
 import org.gusdb.fgputil.server.RESTServer;
+import org.gusdb.fgputil.web.ApplicationContext;
 import org.json.JSONObject;
 
 public class Server extends RESTServer {
