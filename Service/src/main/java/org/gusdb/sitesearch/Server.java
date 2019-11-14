@@ -26,4 +26,9 @@ public class Server extends RESTServer {
     return new Context(config);
   }
 
+  @Override
+  protected boolean requiresConfigFile() {
+    return true;
+  }
+
 }
