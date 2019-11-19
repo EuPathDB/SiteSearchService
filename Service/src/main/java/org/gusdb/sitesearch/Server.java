@@ -1,5 +1,7 @@
 package org.gusdb.sitesearch;
 
+import java.net.URI;
+
 import org.glassfish.jersey.server.ResourceConfig;
 import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.web.ApplicationContext;
@@ -22,7 +24,7 @@ public class Server extends RESTServer {
   }
 
   @Override
-  protected ApplicationContext createApplicationContext(JSONObject config) {
+  protected ApplicationContext createApplicationContext(URI serviceUri, JSONObject config) {
     return new Context(config);
   }
 
