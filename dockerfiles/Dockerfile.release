@@ -1,0 +1,15 @@
+FROM openjdk:11
+
+ENV GUS_HOME=/tmp/gus_home
+ENV PATH="${GUS_HOME}/bin:${PATH}"
+
+COPY gus_home /tmp/gus_home
+COPY entrypoint.sh /tmp/entrypoint.sh
+
+RUN chmod +x /tmp/entrypoint.sh
+
+ENTRYPOINT ["/tmp/entrypoint.sh"]
+EXPOSE 9999
+
+CMD runSiteSearchService http://0.0.0.0 9999 /tmp/site-search-config.json
+
