@@ -1,4 +1,4 @@
-FROM openjdk:11-jre-slim
+FROM openjdk:11
 
 ENV GUS_HOME=/tmp/gus_home
 ENV PATH="${GUS_HOME}/bin:${PATH}"
