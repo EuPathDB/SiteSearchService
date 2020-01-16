@@ -48,6 +48,11 @@
     </dependency>
 
     <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-client</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.glassfish.jersey.media</groupId>
       <artifactId>jersey-media-multipart</artifactId>
     </dependency>
@@ -71,6 +76,11 @@
     <dependency>
       <groupId>org.glassfish.grizzly</groupId>
       <artifactId>grizzly-http-servlet</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-solrj</artifactId>
     </dependency>
 
     <dependency>
