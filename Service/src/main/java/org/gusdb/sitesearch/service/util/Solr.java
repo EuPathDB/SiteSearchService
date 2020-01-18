@@ -1,10 +1,15 @@
 package org.gusdb.sitesearch.service.util;
 
+import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
 import static org.gusdb.sitesearch.service.server.Context.SOLR_URL;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -19,6 +24,7 @@ import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.fgputil.IoUtil;
 import org.gusdb.fgputil.functional.FunctionalInterfaces.FunctionWithException;
 import org.gusdb.fgputil.server.RESTServer;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -26,20 +32,8 @@ public class Solr {
 
   private static final Logger LOG = Logger.getLogger(Solr.class);
 
-  private static final String SOLR_URI_PATH = "/solr/site_search";
-
   public static String getSolrUrl() {
-    return (String)RESTServer.getApplicationContext().get(SOLR_URL) + SOLR_URI_PATH;
-  }
-
-  public static JSONObject readToJson(String requestSubpath, Response response) throws IOException {
-    String data = IoUtil.readAllChars(new InputStreamReader((InputStream)response.getEntity()));
-    JSONObject result = new JSONObject(data);
-    int responseStatus = result.getJSONObject("responseHeader").getInt("status");
-    if (responseStatus != 0) {
-      throw handleError("SOLR response had non-zero embedded status (" + responseStatus + ")", requestSubpath, null);
-    }
-    return result;
+    return (String)RESTServer.getApplicationContext().get(SOLR_URL);
   }
 
   public static <T> T executeQuery(String urlSubpath, boolean closeResponseOnExit, FunctionWithException<Response, T> handler) {
@@ -76,6 +70,59 @@ public class Solr {
     return e == null ? new SiteSearchRuntimeException(runtimeMsg) : new SiteSearchRuntimeException(runtimeMsg, e);
   }
 
+  /*
+   * "facet_counts": {
+      "facet_intervals": {},
+      "facet_queries": {},
+      "facet_fields": {"document-type": [
+        "batch-meta",
+        0,
+        "document-categories",
+        0,
+        "pathway",
+        0,
+        "organism",
+        0,
+        "genomic-sequence",
+        0,
+        "est",
+        0,
+        "gene",
+        0,
+        "dataset",
+        0,
+        "compound",
+        0,
+        "search",
+        0
+      ]},
+      "facet_heatmaps": {},
+      "facet_ranges": {}
+    }
+   */
+  public static SolrResponse parseResponse(String requestSubpath, Response response) throws IOException {
+    String data = IoUtil.readAllChars(new InputStreamReader((InputStream)response.getEntity()));
+    JSONObject responseBody = new JSONObject(data);
+    int responseStatus = responseBody.getJSONObject("responseHeader").getInt("status");
+    if (responseStatus != 0) {
+      throw handleError("SOLR response had non-zero embedded status (" + responseStatus + ")", requestSubpath, null);
+    }
+    JSONObject responseJson = responseBody.getJSONObject("response");
+    List<JSONObject> documents = arrayStream(responseJson.getJSONArray("docs"))
+        .map(val -> val.getJSONObject())
+        .collect(Collectors.toList());
+    SolrResponse respObj = new SolrResponse(documents);
+    if (responseJson.has("facet_counts")) {
+      // for now we only request facet counts on document-type
+      JSONArray facets = responseJson.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray("document-type");
+      Map<String,Integer> facetCounts = new HashMap<>();
+      for (int i = 0; i < facets.length(); i++) {
+        facetCounts.put(facets.getString(i), facets.getInt(++i));
+      }
+      respObj.setFacetCounts(facetCounts);
+    }
+    return respObj;
+  }
 
   // Leaving here as a reference in case we go with SOLRJ in a future iteration; for now sticking with JSON
   /*

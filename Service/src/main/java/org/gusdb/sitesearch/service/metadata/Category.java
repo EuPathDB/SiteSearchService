@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 
 public class Category implements Iterable<DocumentType> {
 
@@ -27,6 +30,16 @@ public class Category implements Iterable<DocumentType> {
   @Override
   public Iterator<DocumentType> iterator() {
     return _docTypes.iterator();
+  }
+
+  public JSONObject toJson() {
+    JSONArray docTypes = new JSONArray();
+    for (DocumentType docType : _docTypes) {
+      docTypes.put(docType.toJson());
+    }
+    return new JSONObject()
+      .put("name", _name)
+      .put("docTypes", docTypes);
   }
 
 }

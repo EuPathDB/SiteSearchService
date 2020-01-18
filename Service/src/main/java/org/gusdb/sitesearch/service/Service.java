@@ -1,5 +1,7 @@
 package org.gusdb.sitesearch.service;
 
+import java.util.function.Function;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -10,7 +12,9 @@ import javax.ws.rs.core.Response;
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.sitesearch.service.metadata.CategoriesMetadata;
+import org.gusdb.sitesearch.service.search.SearchRequest;
 import org.gusdb.sitesearch.service.util.Solr;
+import org.gusdb.sitesearch.service.util.SolrResponse;
 import org.json.JSONObject;
 
 /*
@@ -46,7 +50,12 @@ public class Service {
 
   private static final Logger LOG = Logger.getLogger(Service.class);
 
-  private static final String CATAGORIES_METADOC_REQUEST = "/select?q=*&fq=document-type:(document-categories)&fl=json-blob:[json]&wt=json";
+  private static final Function<String,String> METADOC_REQUEST = docType ->
+    "/select?q=*&fq=document-type:(" + docType + ")&fl=json-blob:[json]&wt=json";
+
+  private static final String CATAGORIES_METADOC_REQUEST = METADOC_REQUEST.apply("document-categories");
+  private static final String FIELDS_METADOC_REQUEST = METADOC_REQUEST.apply("document-fields");
+
   private static final String DOCUMENT_TYPE_FIELD = "document-type";
   private static final String ID_FIELD = "id";
 
@@ -64,67 +73,32 @@ public class Service {
       "&defType=edismax" +     // query parser
       "&fl=document-type,id"; // fields we want back
 
-  /**
-inputSchema = {
-  searchText: string,
-  restrictToOrganisms: string[],
-  pagination: {
-    offset: integer,
-    numRecords: integer
-  }
-}
-   */
   @POST
-  @Path("/search")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response runUnfilteredSearch(String body) {
-    return Response.ok().build();
-  }
-
-  /**
-inputSchema = {
-  searchText: string,
-  restrictToOrganisms: string[],
-  pagination: {
-    offset: integer,
-    numRecords: integer
-  },
-  filter: {
-    documentType: string,
-    foundInFields?: string[]
-  }
-}
-   */
-  @POST
-  @Path("/filtered-search")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response runFilteredSearch(String body) {
-    return Response.ok().build();
-  }
-
-  @GET
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response runSiteSearch() {
+  public Response runSearch(String body) {
+    SearchRequest request = new SearchRequest(new JSONObject(body));
     CategoriesMetadata meta = loadCategories();
-    JSONObject results = Solr.executeQuery(TEST_REQUEST, true, response -> {
-      return Solr.readToJson(TEST_REQUEST, response);
-    });
-    return Response.ok(new JSONObject()
-        .put("metadata", meta)
-        .put("results", results)
-        .toString(2)).build();
+    
+    return Response.ok().build();
   }
 
   @GET
-  @Path("/categories")
+  @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCategoriesJson() {
-    return Response.ok(loadCategories().toString()).build();
+    return Response.ok(loadCategories().toJson().toString(2)).build();
   }
 
   private CategoriesMetadata loadCategories() {
-    return Solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
-      return new CategoriesMetadata(Solr.readToJson(CATAGORIES_METADOC_REQUEST, response));
+    // initialize categories metadata object with categories document data
+    CategoriesMetadata meta = Solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
+      SolrResponse result = Solr.parseResponse(CATAGORIES_METADOC_REQUEST, response);
+      return new CategoriesMetadata(result);
+    });
+    // supplement doc types with the fields in those doc types
+    return Solr.executeQuery(FIELDS_METADOC_REQUEST, true, response -> {
+      SolrResponse result = Solr.parseResponse(FIELDS_METADOC_REQUEST, response);
+      return meta.addFieldData(result);
     });
   }
 
