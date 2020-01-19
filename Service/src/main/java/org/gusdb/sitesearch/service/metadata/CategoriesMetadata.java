@@ -6,14 +6,17 @@ import static org.gusdb.fgputil.functional.Functions.reduce;
 import static org.gusdb.fgputil.json.JsonIterators.arrayIterable;
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.MapBuilder;
 import org.gusdb.fgputil.Tuples.TwoTuple;
+import org.gusdb.sitesearch.service.search.DocTypeFilter;
 import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.util.SolrResponse;
 import org.json.JSONArray;
@@ -190,6 +193,16 @@ public class CategoriesMetadata {
       catsJson.put(category.toJson());
     }
     return catsJson;
+  }
+
+  public List<DocumentField> getFields(Optional<DocTypeFilter> filter) {
+    List<DocumentField> fields = new ArrayList<>();
+    for (DocumentType type : _docTypes.values()) {
+      if (filter.isEmpty() || filter.get().getDocType().equals(type.getId())) {
+        fields.addAll(type.getFields());
+      }
+    }
+    return fields;
   }
 
 }

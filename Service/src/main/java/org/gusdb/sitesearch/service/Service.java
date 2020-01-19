@@ -1,17 +1,25 @@
 package org.gusdb.sitesearch.service;
 
+import static org.gusdb.fgputil.FormatUtil.urlEncodeUtf8;
+
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.sitesearch.service.metadata.CategoriesMetadata;
+import org.gusdb.sitesearch.service.metadata.DocumentField;
+import org.gusdb.sitesearch.service.search.DocTypeFilter;
 import org.gusdb.sitesearch.service.search.SearchRequest;
 import org.gusdb.sitesearch.service.util.Solr;
 import org.gusdb.sitesearch.service.util.SolrResponse;
@@ -67,19 +75,72 @@ public class Service {
       "/select" +
       "?q=" + IDENTITY_QUERY + // search term
       "&qf=" + FormatUtil.urlEncodeUtf8(QUERY_FIELDS) +  // which fields to query (space or comma delimited)
+
       "&rows=10" +
       "&facet=true" +
       "&facet.field=" + DOCUMENT_TYPE_FIELD +
       "&defType=edismax" +     // query parser
       "&fl=document-type,id"; // fields we want back
 
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response runSearch(
+      @QueryParam("searchText") String searchText,
+      @QueryParam("offset") int offset,
+      @QueryParam("rows") int numRecords) {
+    CategoriesMetadata meta = loadCategories();
+    // first get all document-types for facet information (will always do regardless of filter)
+    String allDocsRequest =
+        "/select" +
+        "?q=" + urlEncodeUtf8(searchText) +
+        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(meta.getFields(Optional.empty()))) +
+        "&start=" + offset +
+        "&rows=" + numRecords +
+        "&facet=true" +
+        "&facet.field=" + DOCUMENT_TYPE_FIELD +
+        "&fl=document-type,id" + // temporarily only get back two fields
+        "&defType=edismax"; // query parser
+    SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
+      return Solr.parseResponse(allDocsRequest, resp);
+    });
+    JSONObject resultJson = new JSONObject()
+      .put("categories", meta.toJson())
+      .put("facetCounts", response.getFacetCounts().orElse(null)) // included
+      .put("searchResults", response.getDocuments());
+    return Response.ok(resultJson.toString(2)).build();
+    
+  }
+
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
     SearchRequest request = new SearchRequest(new JSONObject(body));
     CategoriesMetadata meta = loadCategories();
-    
-    return Response.ok().build();
+    // first get all document-types for facet information (will always do regardless of filter)
+    String allDocsRequest =
+        "/select" +
+        "?q=" + urlEncodeUtf8(request.getSearchText()) +
+        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(meta.getFields(Optional.empty()))) +
+        "&start=" + request.getPagination().getOffset() +
+        "&rows=" + request.getPagination().getNumRecords() +
+        "&facet=true" +
+        "&facet.field=" + DOCUMENT_TYPE_FIELD +
+        "&fl=document-type,id" + // temporarily only get back two fields
+        "&defType=edismax"; // query parser
+    SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
+      return Solr.parseResponse(allDocsRequest, resp);
+    });
+    JSONObject resultJson = new JSONObject()
+      .put("categories", meta.toJson())
+      .put("facetCounts", response.getFacetCounts().orElse(null)) // included
+      .put("searchResults", response.getDocuments());
+    return Response.ok(resultJson.toString(2)).build();
+  }
+
+  private static String formatFieldsForRequest(List<DocumentField> fields) {
+    return fields.stream()
+        .map(field -> field.getName())// + "^" + field.getBoost()) <- TURN BACK ON TO SEE HOW TO GET ERROR MESSAGES BACK FROM SOLR
+        .collect(Collectors.joining(","));
   }
 
   @GET
