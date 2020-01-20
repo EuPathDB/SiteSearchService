@@ -3,6 +3,7 @@ package org.gusdb.sitesearch.service.search;
 import static java.util.Arrays.asList;
 import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +37,13 @@ public class SearchRequest {
       asList(toStringArray(requestJson.getJSONArray("restrictToOrganisms")));
     _filter = !requestJson.has("filter") ? null :
       new DocTypeFilter(requestJson.getJSONObject("filter"));
+  }
+
+  public SearchRequest(String searchText, int offset, int numRecords) {
+    _searchText = searchText;
+    _pagination = new Pagination(offset, numRecords);
+    _restrictToOrganisms = new ArrayList<>();
+    _filter = null;
   }
 
   public String getSearchText() {

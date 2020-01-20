@@ -39,10 +39,11 @@ public class DocumentField {
     return _boost;
   }
 
-  public JSONObject toJson() {
-    return new JSONObject()
+  public JSONObject toJson(JsonDestination dest) {
+    JSONObject json = new JSONObject()
       .put("name", _name)
-      .put("displayName", _displayName)
+      .put("displayName", _displayName);
+    return dest.equals(JsonDestination.OUTPUT) ? json : json
       .put("isSummary", _isSummary)
       .put("boost", _boost);
   }

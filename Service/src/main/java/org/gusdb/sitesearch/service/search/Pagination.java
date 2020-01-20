@@ -18,6 +18,11 @@ public class Pagination {
     _numRecords = json.getInt("numRecords");
   }
 
+  public Pagination(int offset, int numRecords) {
+    _offset = offset;
+    _numRecords = numRecords;
+  }
+
   public int getOffset() {
     return _offset;
   }

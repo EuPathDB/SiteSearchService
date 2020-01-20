@@ -15,12 +15,15 @@ public class DocumentType {
   private final Optional<String> _wdkSearchUrlName;
   private final List<DocumentField> _fields;
 
+  private Optional<Integer> _count;
+
   public DocumentType(String id, String displayName, String displayNamePlural, String wdkSearchUrlName) {
     _id = id;
     _displayName = displayName;
     _displayNamePlural = displayNamePlural;
     _wdkSearchUrlName = Optional.ofNullable(wdkSearchUrlName);
     _fields = new ArrayList<>();
+    _count = Optional.empty();
   }
 
   public void addFields(List<DocumentField> newFields) {
@@ -47,17 +50,28 @@ public class DocumentType {
     return _fields;
   }
 
-  public JSONObject toJson() {
+  public Optional<Integer> getCount() {
+    return _count;
+  }
+
+  public JSONObject toJson(JsonDestination dest) {
     JSONArray fields = new JSONArray();
     for (DocumentField field : _fields) {
-      fields.put(field.toJson());
+      fields.put(field.toJson(dest));
     }
-    return new JSONObject()
+    JSONObject json = new JSONObject()
       .put("id", _id)
       .put("displayName", _displayName)
       .put("displayNamePlural", _displayNamePlural)
       .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
       .put("wdkSearchUrlName", _wdkSearchUrlName.orElse(null))
-      .put("fields", fields);
+      .put("count", _count.orElse(null));
+    return _wdkSearchUrlName.isPresent() ||
+           dest.equals(JsonDestination.LOG)
+        ? json.put("fields", fields) : json;
+  }
+
+  public void setCount(int count) {
+    _count = Optional.of(count);
   }
 }

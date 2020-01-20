@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.sitesearch.service.metadata.CategoriesMetadata;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
+import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.search.DocTypeFilter;
 import org.gusdb.sitesearch.service.search.SearchRequest;
 import org.gusdb.sitesearch.service.util.Solr;
@@ -87,34 +88,18 @@ public class Service {
   public Response runSearch(
       @QueryParam("searchText") String searchText,
       @QueryParam("offset") int offset,
-      @QueryParam("rows") int numRecords) {
-    CategoriesMetadata meta = loadCategories();
-    // first get all document-types for facet information (will always do regardless of filter)
-    String allDocsRequest =
-        "/select" +
-        "?q=" + urlEncodeUtf8(searchText) +
-        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(meta.getFields(Optional.empty()))) +
-        "&start=" + offset +
-        "&rows=" + numRecords +
-        "&facet=true" +
-        "&facet.field=" + DOCUMENT_TYPE_FIELD +
-        "&fl=document-type,id" + // temporarily only get back two fields
-        "&defType=edismax"; // query parser
-    SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
-      return Solr.parseResponse(allDocsRequest, resp);
-    });
-    JSONObject resultJson = new JSONObject()
-      .put("categories", meta.toJson())
-      .put("facetCounts", response.getFacetCounts().orElse(null)) // included
-      .put("searchResults", response.getDocuments());
-    return Response.ok(resultJson.toString(2)).build();
-    
+      @QueryParam("numRecords") int numRecords) {
+    return handleSearchRequest(new SearchRequest(searchText, offset, numRecords));
   }
 
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
     SearchRequest request = new SearchRequest(new JSONObject(body));
+    return handleSearchRequest(request);
+  }
+
+  private Response handleSearchRequest(SearchRequest request) {
     CategoriesMetadata meta = loadCategories();
     // first get all document-types for facet information (will always do regardless of filter)
     String allDocsRequest =
@@ -130,9 +115,11 @@ public class Service {
     SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
       return Solr.parseResponse(allDocsRequest, resp);
     });
+    if (response.getFacetCounts().isPresent()) {
+      meta.applyFacetCounts(response.getFacetCounts().get());
+    }
     JSONObject resultJson = new JSONObject()
-      .put("categories", meta.toJson())
-      .put("facetCounts", response.getFacetCounts().orElse(null)) // included
+      .put("categories", meta.toJson(JsonDestination.OUTPUT))
       .put("searchResults", response.getDocuments());
     return Response.ok(resultJson.toString(2)).build();
   }
@@ -140,14 +127,14 @@ public class Service {
   private static String formatFieldsForRequest(List<DocumentField> fields) {
     return fields.stream()
         .map(field -> field.getName())// + "^" + field.getBoost()) <- TURN BACK ON TO SEE HOW TO GET ERROR MESSAGES BACK FROM SOLR
-        .collect(Collectors.joining(","));
+        .collect(Collectors.joining(" "));
   }
 
   @GET
   @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCategoriesJson() {
-    return Response.ok(loadCategories().toJson().toString(2)).build();
+    return Response.ok(loadCategories().toJson(JsonDestination.LOG).toString(2)).build();
   }
 
   private CategoriesMetadata loadCategories() {

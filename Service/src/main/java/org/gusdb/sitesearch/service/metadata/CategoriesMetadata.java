@@ -7,6 +7,7 @@ import static org.gusdb.fgputil.json.JsonIterators.arrayIterable;
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,7 +114,7 @@ import org.json.JSONObject;
     }
 */
 
-public class CategoriesMetadata {
+public class CategoriesMetadata implements Iterable<Category> {
 
   private static final Logger LOG = Logger.getLogger(CategoriesMetadata.class);
 
@@ -187,10 +188,10 @@ public class CategoriesMetadata {
     return this;
   }
 
-  public JSONArray toJson() {
+  public JSONArray toJson(JsonDestination dest) {
     JSONArray catsJson = new JSONArray();
     for (Category category : _categories) {
-      catsJson.put(category.toJson());
+      catsJson.put(category.toJson(dest));
     }
     return catsJson;
   }
@@ -203,6 +204,17 @@ public class CategoriesMetadata {
       }
     }
     return fields;
+  }
+
+  @Override
+  public Iterator<Category> iterator() {
+    return _categories.iterator();
+  }
+
+  public void applyFacetCounts(Map<String, Integer> map) {
+    for (DocumentType docType : _docTypes.values()) {
+      docType.setCount(map.containsKey(docType.getId()) ? map.get(docType.getId()) : 0);
+    }
   }
 
 }

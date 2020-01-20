@@ -32,10 +32,10 @@ public class Category implements Iterable<DocumentType> {
     return _docTypes.iterator();
   }
 
-  public JSONObject toJson() {
+  public JSONObject toJson(JsonDestination dest) {
     JSONArray docTypes = new JSONArray();
     for (DocumentType docType : _docTypes) {
-      docTypes.put(docType.toJson());
+      docTypes.put(docType.toJson(dest));
     }
     return new JSONObject()
       .put("name", _name)

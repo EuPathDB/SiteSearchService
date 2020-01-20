@@ -112,12 +112,13 @@ public class Solr {
         .map(val -> val.getJSONObject())
         .collect(Collectors.toList());
     SolrResponse respObj = new SolrResponse(documents);
-    if (responseJson.has("facet_counts")) {
+    if (responseBody.has("facet_counts")) {
+      LOG.info("Facet counts found with value: " + responseBody.getJSONObject("facet_counts").toString());
       // for now we only request facet counts on document-type
-      JSONArray facets = responseJson.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray("document-type");
+      JSONArray facets = responseBody.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray("document-type");
       Map<String,Integer> facetCounts = new HashMap<>();
-      for (int i = 0; i < facets.length(); i++) {
-        facetCounts.put(facets.getString(i), facets.getInt(++i));
+      for (int i = 0; i < facets.length(); i+=2) {
+        facetCounts.put(facets.getString(i), facets.getInt(i+1));
       }
       respObj.setFacetCounts(facetCounts);
     }
