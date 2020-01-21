@@ -10,7 +10,7 @@
 
 cat > /tmp/site-search-config.json <<EOF
 {
-  "solrConnectionString": "${SOLR_CONNECTION_STRING}"
+  "solrUrl": "${SOLR_URL}"
 }
 EOF
 
