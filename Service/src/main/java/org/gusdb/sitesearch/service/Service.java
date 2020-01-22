@@ -2,7 +2,17 @@ package org.gusdb.sitesearch.service;
 
 import static org.gusdb.fgputil.FormatUtil.urlEncodeUtf8;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -17,13 +27,17 @@ import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.FormatUtil;
+import org.gusdb.fgputil.FormatUtil.Style;
+import org.gusdb.fgputil.runtime.GusHome;
 import org.gusdb.sitesearch.service.metadata.CategoriesMetadata;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
+import org.gusdb.sitesearch.service.metadata.DocumentType;
 import org.gusdb.sitesearch.service.metadata.JsonDestination;
-import org.gusdb.sitesearch.service.search.DocTypeFilter;
 import org.gusdb.sitesearch.service.search.SearchRequest;
+import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.util.Solr;
 import org.gusdb.sitesearch.service.util.SolrResponse;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /*
@@ -66,16 +80,13 @@ public class Service {
   private static final String FIELDS_METADOC_REQUEST = METADOC_REQUEST.apply("document-fields");
 
   private static final String DOCUMENT_TYPE_FIELD = "document-type";
+  private static final String ORGANISM_FIELD = "organism";
   private static final String ID_FIELD = "id";
-
-  // dummy values for testing
-  private static final String IDENTITY_QUERY = "identity";
-  private static final String QUERY_FIELDS = "MULTITEXT__PdbSimilarities MULTITEXT__BlastP";
 
   private static final String TEST_REQUEST =
       "/select" +
-      "?q=" + IDENTITY_QUERY + // search term
-      "&qf=" + FormatUtil.urlEncodeUtf8(QUERY_FIELDS) +  // which fields to query (space or comma delimited)
+      "?q=exon" + // search term
+      "&qf=" + FormatUtil.urlEncodeUtf8("MULTITEXT__PdbSimilarities MULTITEXT__BlastP") +  // which fields to query (space or comma delimited)
 
       "&rows=10" +
       "&facet=true" +
@@ -95,8 +106,7 @@ public class Service {
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
-    SearchRequest request = new SearchRequest(new JSONObject(body));
-    return handleSearchRequest(request);
+    return handleSearchRequest(new SearchRequest(new JSONObject(body)));
   }
 
   private Response handleSearchRequest(SearchRequest request) {
@@ -110,7 +120,8 @@ public class Service {
         "&rows=" + request.getPagination().getNumRecords() +
         "&facet=true" +
         "&facet.field=" + DOCUMENT_TYPE_FIELD +
-        "&fl=document-type,id" + // temporarily only get back two fields
+        "&facet.field=" + ORGANISM_FIELD +
+        //"&fl=document-type,id" + // temporarily only get back two fields
         "&defType=edismax"; // query parser
     SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
       return Solr.parseResponse(allDocsRequest, resp);
@@ -119,9 +130,35 @@ public class Service {
       meta.applyFacetCounts(response.getFacetCounts().get());
     }
     JSONObject resultJson = new JSONObject()
-      .put("categories", meta.toJson(JsonDestination.OUTPUT))
-      .put("searchResults", response.getDocuments());
+      .put("categories", meta.toJson())
+      .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+      .put("searchResults", getDocumentsJson(meta, response.getDocuments()));
     return Response.ok(resultJson.toString(2)).build();
+  }
+
+  private JSONArray getDocumentsJson(CategoriesMetadata meta, List<JSONObject> documents) {
+    return new JSONArray(documents.stream().map(documentJson -> {
+      LOG.info("Processing document: " + documentJson.toString(2));
+      DocumentType docType = meta.getDocumentType(documentJson.getString("document-type"))
+        .orElseThrow(() -> new SiteSearchRuntimeException("Unknown document type returned in document: " + documentJson.toString(2))); 
+      String primaryKey = documentJson.optString("primaryKey", "<unknown!>");
+      JSONObject json = new JSONObject()
+        .put("documentType", docType.getId())
+        .put("primaryKey", primaryKey);
+      String value;
+      for (DocumentField field : docType.getFields()) {
+        if (field.isSummary()) {
+          if ((value = documentJson.optString(field.getName(), null)) != null) {
+            json.put(field.getName(), value);
+          }
+          else {
+            LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain summary field '" + field.getName());
+          }
+        }
+      }
+      return documentJson;
+    })
+    .collect(Collectors.toList()));
   }
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
@@ -134,7 +171,13 @@ public class Service {
   @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCategoriesJson() {
-    return Response.ok(loadCategories().toJson(JsonDestination.LOG).toString(2)).build();
+    CategoriesMetadata meta = loadCategories();
+    return Response.ok(
+      new JSONObject()
+        .put("categories", meta.toJson())
+        .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+        .toString(2)
+    ).build();
   }
 
   private CategoriesMetadata loadCategories() {
@@ -150,4 +193,43 @@ public class Service {
     });
   }
 
+  @GET
+  @Path("/build-status")
+  @Produces(MediaType.TEXT_PLAIN)
+  public Response getBuildStatus() {
+    String statusFile = Paths.get(GusHome.getGusHome(), ".buildlog", "git_status").toAbsolutePath().toString();
+    List<Map<String,String>> records = new ArrayList<>();
+    try (BufferedReader br = new BufferedReader(new FileReader(statusFile))) {
+      Map<String,String> buildRecord = new LinkedHashMap<>();
+      while (br.ready()) {
+        String line = br.readLine().trim();
+        if (line.isEmpty()) {
+          if (!buildRecord.isEmpty()) {
+            records.add(buildRecord);
+            buildRecord = new LinkedHashMap<>();
+          }
+        }
+        else {
+          String[] tokens = line.split("\\s+", 2);
+          buildRecord.put(tokens[0], tokens.length > 1 ? tokens[1] : "");
+        }
+      }
+      if (!buildRecord.isEmpty()) {
+        records.add(buildRecord);
+      }
+    }
+    catch (IOException e) {
+      throw new SiteSearchRuntimeException("Could not query build status", e);
+    }
+    Map<String,Map<String,String>> lastBuildRecords = new HashMap<>();
+    for (Map<String,String> record : records) {
+      lastBuildRecords.put(record.get("Project:")+"."+record.get("Component:"), record);
+    }
+    List<String> sortedKeys = new ArrayList<>(lastBuildRecords.keySet());
+    Collections.sort(sortedKeys);
+    String result = sortedKeys.stream()
+      .map(key -> FormatUtil.prettyPrint(lastBuildRecords.get(key), Style.MULTI_LINE))
+      .collect(Collectors.joining("\n"));
+    return Response.ok(result).build();
+  }
 }

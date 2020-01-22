@@ -7,7 +7,6 @@ import static org.gusdb.fgputil.json.JsonIterators.arrayIterable;
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,8 +112,7 @@ import org.json.JSONObject;
       "status": 0
     }
 */
-
-public class CategoriesMetadata implements Iterable<Category> {
+public class CategoriesMetadata {
 
   private static final Logger LOG = Logger.getLogger(CategoriesMetadata.class);
 
@@ -140,7 +138,7 @@ public class CategoriesMetadata implements Iterable<Category> {
       new MapBuilder<String,DocumentType>()).toMap();
   }
 
-  private JSONObject getSingular(List<JSONObject> documents, String docType) {
+  private static JSONObject getSingular(List<JSONObject> documents, String docType) {
     if (documents.size() != 1) {
       String message = documents.size() == 0 ? "No" : "More than one (" + documents.size() + ")";
       throw new SiteSearchRuntimeException(message + " SOLR documents found with type '" + docType + "'");
@@ -188,12 +186,26 @@ public class CategoriesMetadata implements Iterable<Category> {
     return this;
   }
 
-  public JSONArray toJson(JsonDestination dest) {
+  public void applyFacetCounts(Map<String, Integer> map) {
+    for (DocumentType docType : _docTypes.values()) {
+      docType.setCount(map.containsKey(docType.getId()) ? map.get(docType.getId()) : 0);
+    }
+  }
+
+  public JSONArray toJson() {
     JSONArray catsJson = new JSONArray();
     for (Category category : _categories) {
-      catsJson.put(category.toJson(dest));
+      catsJson.put(category.toJson());
     }
     return catsJson;
+  }
+
+  public JSONArray getDocumentTypesJson(JsonDestination dest) {
+    JSONArray json = new JSONArray();
+    for (DocumentType docType : _docTypes.values()) {
+      json.put(docType.toJson(dest));
+    }
+    return json;
   }
 
   public List<DocumentField> getFields(Optional<DocTypeFilter> filter) {
@@ -206,15 +218,8 @@ public class CategoriesMetadata implements Iterable<Category> {
     return fields;
   }
 
-  @Override
-  public Iterator<Category> iterator() {
-    return _categories.iterator();
-  }
-
-  public void applyFacetCounts(Map<String, Integer> map) {
-    for (DocumentType docType : _docTypes.values()) {
-      docType.setCount(map.containsKey(docType.getId()) ? map.get(docType.getId()) : 0);
-    }
+  public Optional<DocumentType> getDocumentType(String docTypeId) {
+    return Optional.ofNullable(_docTypes.get(docTypeId));
   }
 
 }

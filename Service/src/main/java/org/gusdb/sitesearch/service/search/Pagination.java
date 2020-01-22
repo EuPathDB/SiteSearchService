@@ -1,5 +1,6 @@
 package org.gusdb.sitesearch.service.search;
 
+import org.gusdb.sitesearch.service.util.InvalidRequestException;
 import org.json.JSONObject;
 
 public class Pagination {
@@ -16,11 +17,21 @@ public class Pagination {
   public Pagination(JSONObject json) {
     _offset = json.getInt("offset");
     _numRecords = json.getInt("numRecords");
+    validate();
   }
 
   public Pagination(int offset, int numRecords) {
     _offset = offset;
     _numRecords = numRecords;
+    validate();
+  }
+
+  private void validate() {
+    if (_offset < 0)
+      throw new InvalidRequestException("offset must be >= 0");
+    if (_numRecords < 0) {
+      throw new InvalidRequestException("numRecords must be >= 0");
+    }
   }
 
   public int getOffset() {

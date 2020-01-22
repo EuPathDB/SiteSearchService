@@ -59,16 +59,17 @@ public class DocumentType {
     for (DocumentField field : _fields) {
       fields.put(field.toJson(dest));
     }
-    JSONObject json = new JSONObject()
+    return new JSONObject()
       .put("id", _id)
       .put("displayName", _displayName)
       .put("displayNamePlural", _displayNamePlural)
       .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
-      .put("wdkSearchUrlName", _wdkSearchUrlName.orElse(null))
-      .put("count", _count.orElse(null));
-    return _wdkSearchUrlName.isPresent() ||
-           dest.equals(JsonDestination.LOG)
-        ? json.put("fields", fields) : json;
+      .put("wdkRecordTypeData", _wdkSearchUrlName
+        .map(searchName ->
+          new JSONObject()
+            .put("searchUrlName", searchName)
+            .put("fields", fields))
+        .orElse(null));
   }
 
   public void setCount(int count) {

@@ -1,8 +1,5 @@
 package org.gusdb.sitesearch.service.search;
 
-import static java.util.Arrays.asList;
-import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -21,8 +18,7 @@ public class DocTypeFilter {
    */
   public DocTypeFilter(JSONObject json) {
     _docType = json.getString("documentType");
-    _foundOnlyInFields = !json.has("foundOnlyInFields") ? null :
-        asList(toStringArray(json.getJSONArray("foundOnlyInFields")));
+    _foundOnlyInFields = SearchRequest.getArrayValues(json, "foundOnlyInFields");
   }
 
   public String getDocType() {

@@ -3,10 +3,9 @@ package org.gusdb.sitesearch.service.metadata;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
-
 
 public class Category implements Iterable<DocumentType> {
 
@@ -32,14 +31,10 @@ public class Category implements Iterable<DocumentType> {
     return _docTypes.iterator();
   }
 
-  public JSONObject toJson(JsonDestination dest) {
-    JSONArray docTypes = new JSONArray();
-    for (DocumentType docType : _docTypes) {
-      docTypes.put(docType.toJson(dest));
-    }
+  public JSONObject toJson() {
     return new JSONObject()
       .put("name", _name)
-      .put("docTypes", docTypes);
+      .put("docTypes", _docTypes.stream().map(t -> t.getId()).collect(Collectors.toList()));
   }
 
 }
