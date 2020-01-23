@@ -50,10 +50,6 @@ public class DocumentType {
     return _fields;
   }
 
-  public Optional<Integer> getCount() {
-    return _count;
-  }
-
   public JSONObject toJson(JsonDestination dest) {
     JSONArray fields = new JSONArray();
     for (DocumentField field : _fields) {
@@ -63,11 +59,12 @@ public class DocumentType {
       .put("id", _id)
       .put("displayName", _displayName)
       .put("displayNamePlural", _displayNamePlural)
+      .put("count", _count.orElse(0))
       .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
       .put("wdkRecordTypeData", _wdkSearchUrlName
         .map(searchName ->
           new JSONObject()
-            .put("searchUrlName", searchName)
+            .put("searchName", searchName)
             .put("fields", fields))
         .orElse(null));
   }
