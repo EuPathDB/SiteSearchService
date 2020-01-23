@@ -34,7 +34,7 @@ public class Category implements Iterable<DocumentType> {
   public JSONObject toJson() {
     return new JSONObject()
       .put("name", _name)
-      .put("docTypes", _docTypes.stream().map(t -> t.getId()).collect(Collectors.toList()));
+      .put("documentTypes", _docTypes.stream().map(t -> t.getId()).collect(Collectors.toList()));
   }
 
 }

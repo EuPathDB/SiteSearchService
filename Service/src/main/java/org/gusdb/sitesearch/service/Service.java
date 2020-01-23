@@ -98,7 +98,8 @@ public class Service {
         "&facet.field=" + DOCUMENT_TYPE_FIELD +
         "&facet.field=" + ORGANISM_FIELD +
         //"&fl=document-type,id" + // temporarily only get back two fields
-        "&defType=edismax"; // query parser
+        "&defType=edismax" + // query parser
+        buildQueryFilterParam(request);
     SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
       return Solr.parseResponse(allDocsRequest, resp);
     });
@@ -113,6 +114,14 @@ public class Service {
           .put("totalCount", response.getTotalCount())
           .put("documents", getDocumentsJson(meta, response.getDocuments())));
     return Response.ok(resultJson.toString(2)).build();
+  }
+
+  private String buildQueryFilterParam(SearchRequest request) {
+    return "";/*
+    if (request.getRestrictSearchToOrganisms().isPresent()) {
+      String filterString = request.getRestrictSearchToOrganisms().get().string
+      allDocsRequest += "&fq=organism:(-PrivacyLevel:[* TO *] OR PrivacyLevel:2
+    }*/
   }
 
   private Optional<JSONObject> getOrganismFacetJson(SolrResponse response,
@@ -140,19 +149,20 @@ public class Service {
       JSONObject json = new JSONObject()
         .put("documentType", docType.getId())
         .put("primaryKey", primaryKey);
+      JSONObject summaryFields = new JSONObject();
       String value;
       for (DocumentField field : docType.getFields()) {
         if (field.isSummary()) {
-          // for now assume all summary fields are single text (multitext are arrays)
+          // FIXME: for now assume all summary fields are single text (multitext are arrays)
           if ((value = documentJson.optString(field.getName(), null)) != null) {
-            json.put(field.getName(), value);
+            summaryFields.put(field.getName(), value);
           }
           else {
             LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain summary field '" + field.getName());
           }
         }
       }
-      return json;
+      return json.put("summaryFields", summaryFields);
     })
     .collect(Collectors.toList()));
   }
