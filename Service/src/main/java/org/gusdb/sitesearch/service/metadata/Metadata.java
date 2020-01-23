@@ -5,8 +5,11 @@ import static org.gusdb.fgputil.functional.Functions.getMapFromValues;
 import static org.gusdb.fgputil.functional.Functions.reduce;
 import static org.gusdb.fgputil.json.JsonIterators.arrayIterable;
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
+import static org.gusdb.sitesearch.service.SolrCalls.DOCUMENT_TYPE_FIELD;
+import static org.gusdb.sitesearch.service.SolrCalls.ORGANISM_FIELD;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,14 +115,15 @@ import org.json.JSONObject;
       "status": 0
     }
 */
-public class CategoriesMetadata {
+public class Metadata {
 
-  private static final Logger LOG = Logger.getLogger(CategoriesMetadata.class);
+  private static final Logger LOG = Logger.getLogger(Metadata.class);
 
   private final List<Category> _categories;
   private final Map<String,DocumentType> _docTypes;
+  private Map<String,Integer> _organismFacetCounts;
 
-  public CategoriesMetadata(SolrResponse result) {
+  public Metadata(SolrResponse result) {
     JSONObject document = getSingular(result.getDocuments(), "document-categories");
     _categories = arrayStream(document.getJSONArray("json-blob"))
       .map(jsonType -> jsonType.getJSONObject())
@@ -146,7 +150,7 @@ public class CategoriesMetadata {
     return documents.get(0);
   }
 
-  public CategoriesMetadata addFieldData(SolrResponse result) {
+  public Metadata addFieldData(SolrResponse result) {
     JSONObject document = getSingular(result.getDocuments(), "document-fields");
 
     // put fields data in a map for easy access
@@ -154,7 +158,7 @@ public class CategoriesMetadata {
       arrayIterable(document.getJSONArray("json-blob")), val -> {
         JSONObject obj = val.getJSONObject();
         return new TwoTuple<String,List<DocumentField>>(
-          obj.getString("document-type"),
+          obj.getString(DOCUMENT_TYPE_FIELD),
           arrayStream(obj.getJSONArray("fields"))
             .map(field -> new DocumentField(field.getJSONObject()))
             .collect(Collectors.toList()));
@@ -167,9 +171,9 @@ public class CategoriesMetadata {
         docType.addFields(fieldMap.get(docType.getId()));
       }
       else {
-        LOG.warn("Categories metadata contains document-type '" + docType.getId() +
-            "' but Fields metadata does not.  This means no records of that " +
-            "document-type will ever be found since its fields cannot be specified.");
+        LOG.warn("Categories metadata contains " + DOCUMENT_TYPE_FIELD + " '" + docType.getId() +
+            "' but fields metadata does not.  This means no records of that " +
+            "type will ever be found since its fields cannot be specified.");
       }
     }
 
@@ -177,22 +181,28 @@ public class CategoriesMetadata {
     Set<String> knownDocTypes = _docTypes.keySet();
     for (String fieldDocType : fieldMap.keySet()) {
       if (!knownDocTypes.contains(fieldDocType)) {
-        LOG.warn("Fields metadata contains document-type '" + fieldDocType +
-            "' but Categories metadata does not.  This means no records of that " +
-            "document-type will ever be found; the document-type is not used.");
+        LOG.warn("Fields metadata contains " + DOCUMENT_TYPE_FIELD + " '" + fieldDocType +
+            "' but categories metadata does not.  This means no records of that " +
+            "type will ever be found; the type is not used.");
       }
     }
 
     return this;
   }
 
-  public void applyFacetCounts(Map<String, Integer> map) {
+  public void applyDocTypeFacetCounts(Map<String,Map<String, Integer>> allFacets) {
+    Map<String,Integer> map = getFieldFacets(allFacets, DOCUMENT_TYPE_FIELD);
     for (DocumentType docType : _docTypes.values()) {
       docType.setCount(map.containsKey(docType.getId()) ? map.get(docType.getId()) : 0);
     }
   }
 
-  public JSONArray toJson() {
+  private static Map<String, Integer> getFieldFacets(Map<String, Map<String, Integer>> allFacets, String field) {
+    return Optional.ofNullable(allFacets.get(field))
+      .orElseThrow(() -> new SiteSearchRuntimeException("SOLR response did not include facets for '" + field + "'."));
+  }
+
+  public JSONArray getCategoriesJson() {
     JSONArray catsJson = new JSONArray();
     for (Category category : _categories) {
       catsJson.put(category.toJson());
@@ -220,6 +230,27 @@ public class CategoriesMetadata {
 
   public Optional<DocumentType> getDocumentType(String docTypeId) {
     return Optional.ofNullable(_docTypes.get(docTypeId));
+  }
+
+  public void setOrganismFacetCounts(
+      Optional<List<String>> restrictMetadataToOrganisms,
+      Map<String, Map<String, Integer>> allFacets) {
+    Map<String,Integer> orgFacets = getFieldFacets(allFacets, ORGANISM_FIELD);
+    _organismFacetCounts = new HashMap<>();
+    if (restrictMetadataToOrganisms.isEmpty()) {
+      _organismFacetCounts.putAll(orgFacets);
+    }
+    else {
+      for (String facetOrg : orgFacets.keySet()) {
+        if (restrictMetadataToOrganisms.get().contains(facetOrg)) {
+          _organismFacetCounts.put(facetOrg, orgFacets.get(facetOrg));
+        }
+      }
+    }
+  }
+
+  public Map<String, Integer> getOrganismFacetCounts() {
+    return _organismFacetCounts;
   }
 
 }

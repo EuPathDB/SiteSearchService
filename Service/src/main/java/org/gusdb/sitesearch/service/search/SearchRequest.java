@@ -97,4 +97,8 @@ public class SearchRequest {
     return Optional.ofNullable(_filter);
   }
 
+  public boolean hasOrganismFilter() {
+    return getRestrictSearchToOrganisms().isPresent();
+  }
+
 }

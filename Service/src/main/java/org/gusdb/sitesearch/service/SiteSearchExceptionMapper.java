@@ -6,7 +6,6 @@ import javax.ws.rs.ext.ExceptionMapper;
 import org.apache.log4j.Logger;
 import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
 
-
 public class SiteSearchExceptionMapper implements ExceptionMapper<Exception> {
 
   private static final Logger LOG = Logger.getLogger(SiteSearchExceptionMapper.class);

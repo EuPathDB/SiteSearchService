@@ -6,12 +6,14 @@ public class DocumentField {
 
   private final String _name;
   private final String _displayName;
+  private final boolean _isMultiText;
   private final boolean _isSummary;
   private final int _boost;
 
   public DocumentField(JSONObject fieldJson) {
     _name = fieldJson.getString("name");
     _displayName = fieldJson.optString("displayName", getRawName(_name));
+    _isMultiText = _name.indexOf("MULTITEXT") > 0;
     _isSummary = fieldJson.optBoolean("isSummary", true);
     _boost = fieldJson.optInt("boost", 1);
   }
@@ -29,6 +31,10 @@ public class DocumentField {
 
   public String getDisplayName() {
     return _displayName;
+  }
+
+  public boolean isMultiText() {
+    return _isMultiText;
   }
 
   public boolean isSummary() {

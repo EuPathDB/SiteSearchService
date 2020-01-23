@@ -32,7 +32,7 @@ public class Solr {
 
   private static final Logger LOG = Logger.getLogger(Solr.class);
 
-  public static String getSolrUrl() {
+  private static String getSolrUrl() {
     return (String)RESTServer.getApplicationContext().get(SOLR_URL);
   }
 
@@ -78,36 +78,6 @@ public class Solr {
     return e == null ? new SiteSearchRuntimeException(runtimeMsg) : new SiteSearchRuntimeException(runtimeMsg, e);
   }
 
-  /*
-   * "facet_counts": {
-      "facet_intervals": {},
-      "facet_queries": {},
-      "facet_fields": {"document-type": [
-        "batch-meta",
-        0,
-        "document-categories",
-        0,
-        "pathway",
-        0,
-        "organism",
-        0,
-        "genomic-sequence",
-        0,
-        "est",
-        0,
-        "gene",
-        0,
-        "dataset",
-        0,
-        "compound",
-        0,
-        "search",
-        0
-      ]},
-      "facet_heatmaps": {},
-      "facet_ranges": {}
-    }
-   */
   public static SolrResponse parseResponse(String requestSubpath, Response response) throws IOException {
     String data = IoUtil.readAllChars(new InputStreamReader((InputStream)response.getEntity()));
     JSONObject responseBody = new JSONObject(data);
@@ -120,46 +90,29 @@ public class Solr {
     List<JSONObject> documents = arrayStream(responseJson.getJSONArray("docs"))
         .map(val -> val.getJSONObject())
         .collect(Collectors.toList());
-    SolrResponse respObj = new SolrResponse(totalCount, documents);
-    if (responseBody.has("facet_counts")) {
-      LOG.info("Facet counts found with value: " + responseBody.getJSONObject("facet_counts").toString());
-      respObj.setDocTypeFacetCounts(parseFacetCounts(responseBody, "document-type"));
-      respObj.setOrganismFacetCounts(parseFacetCounts(responseBody, "organism"));
-    }
+    Map<String,Map<String,Integer>> facetCounts = parseFacetCounts(responseBody);
+    SolrResponse respObj = new SolrResponse(
+        totalCount,
+        documents,
+        facetCounts
+    );
     return respObj;
   }
 
-  private static Map<String, Integer> parseFacetCounts(JSONObject responseBody, String facetField) {
-    // for now we only request facet counts on document-type
-    JSONArray facets = responseBody.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray(facetField);
-    Map<String,Integer> facetCounts = new HashMap<>();
-    for (int i = 0; i < facets.length(); i+=2) {
-      facetCounts.put(facets.getString(i), facets.getInt(i+1));
+  private static Map<String,Map<String, Integer>> parseFacetCounts(JSONObject responseBody) {
+    Map<String,Map<String,Integer>> facetCountMap = new HashMap<>();
+    if (!responseBody.has("facet_counts")) return facetCountMap;
+    if (!responseBody.getJSONObject("facet_counts").has("facet_fields")) return facetCountMap;
+    JSONObject facets = responseBody.getJSONObject("facet_counts").getJSONObject("facet_fields");
+    for (String facetField : facets.keySet()) {
+      JSONArray rawFacets = facets.getJSONArray(facetField);
+      Map<String,Integer> facetCounts = new HashMap<>();
+      for (int i = 0; i < rawFacets.length(); i+=2) {
+        facetCounts.put(rawFacets.getString(i), rawFacets.getInt(i+1));
+      }
+      facetCountMap.put(facetField, facetCounts);
     }
-    return facetCounts;
+    return facetCountMap;
   }
 
-  // Leaving here as a reference in case we go with SOLRJ in a future iteration; for now sticking with JSON
-  /*
-  @SuppressWarnings("unused")
-  private Response runSearchWithSolrj() {
-    try {
-      SolrClient client = new HttpSolrClient.Builder(Solr.getSolrUrl()).build();
-      SolrQuery query = (SolrQuery) new SolrQuery(IDENTITY_QUERY)
-          .setFacet(true)
-          .addFacetField(DOCUMENT_TYPE_FIELD)
-          .setFields(ID_FIELD, DOCUMENT_TYPE_FIELD)
-          .setMoreLikeThisQF(QUERY_FIELDS)
-          .setRows(10)
-          .addFilterQuery("document-type:(gene)")
-          .set("defType", "edismax");
-      QueryResponse response = client.query(query);
-      // TODO parse response
-      //response.getFacetFields().get(0).getName() or .getValueCount()
-      return Response.ok(response.toString()).build();
-    }
-    catch (Exception e) {
-      throw handleError("solrj processing failed", "<unknown>", e);
-    }
-  }*/
 }
