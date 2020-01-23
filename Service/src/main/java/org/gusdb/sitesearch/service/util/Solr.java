@@ -54,7 +54,15 @@ public class Solr {
         }
       }
       else {
-        throw handleError("SOLR request failed with code: " + response.getStatus(), urlSubpath, null);
+        String responseBody = null;
+        try {
+          responseBody = IoUtil.readAllChars(new InputStreamReader((InputStream)response.getEntity()));
+        }
+        catch (IOException e) {
+          LOG.error("Unable to read response body in SOLR response with error code " + response.getStatus());
+        }
+        String bodyContent = responseBody == null ? "" : "; response body:\n" + responseBody;
+        throw handleError("SOLR request failed with code " + response.getStatus() + bodyContent, urlSubpath, null);
       }
     }
     catch (JSONException e) {
@@ -114,15 +122,20 @@ public class Solr {
     SolrResponse respObj = new SolrResponse(documents);
     if (responseBody.has("facet_counts")) {
       LOG.info("Facet counts found with value: " + responseBody.getJSONObject("facet_counts").toString());
-      // for now we only request facet counts on document-type
-      JSONArray facets = responseBody.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray("document-type");
-      Map<String,Integer> facetCounts = new HashMap<>();
-      for (int i = 0; i < facets.length(); i+=2) {
-        facetCounts.put(facets.getString(i), facets.getInt(i+1));
-      }
-      respObj.setFacetCounts(facetCounts);
+      respObj.setDocTypeFacetCounts(parseFacetCounts(responseBody, "document-type"));
+      respObj.setOrganismFacetCounts(parseFacetCounts(responseBody, "organism"));
     }
     return respObj;
+  }
+
+  private static Map<String, Integer> parseFacetCounts(JSONObject responseBody, String facetField) {
+    // for now we only request facet counts on document-type
+    JSONArray facets = responseBody.getJSONObject("facet_counts").getJSONObject("facet_fields").getJSONArray(facetField);
+    Map<String,Integer> facetCounts = new HashMap<>();
+    for (int i = 0; i < facets.length(); i+=2) {
+      facetCounts.put(facets.getString(i), facets.getInt(i+1));
+    }
+    return facetCounts;
   }
 
   // Leaving here as a reference in case we go with SOLRJ in a future iteration; for now sticking with JSON

@@ -9,7 +9,8 @@ import org.json.JSONObject;
 public class SolrResponse {
 
   private final List<JSONObject> _documents;
-  private Map<String,Integer> _facetCounts;
+  private Map<String,Integer> _docTypeFacetCounts;
+  private Map<String,Integer> _organismFacetCounts;
 
   public SolrResponse(List<JSONObject> documents) {
     _documents = documents;
@@ -19,11 +20,19 @@ public class SolrResponse {
     return _documents;
   }
 
-  public void setFacetCounts(Map<String, Integer> facetCounts) {
-    _facetCounts = facetCounts;
+  public void setDocTypeFacetCounts(Map<String, Integer> facetCounts) {
+    _docTypeFacetCounts = facetCounts;
   }
 
-  public Optional<Map<String,Integer>> getFacetCounts() {
-    return Optional.ofNullable(_facetCounts);
+  public Optional<Map<String,Integer>> getDocTypeFacetCounts() {
+    return Optional.ofNullable(_docTypeFacetCounts);
+  }
+
+  public void setOrganismFacetCounts(Map<String, Integer> facetCounts) {
+    _organismFacetCounts = facetCounts;
+  }
+
+  public Optional<Map<String,Integer>> getOrganismFacetCounts() {
+    return Optional.ofNullable(_organismFacetCounts);
   }
 }

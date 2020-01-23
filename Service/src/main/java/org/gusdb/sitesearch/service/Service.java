@@ -16,7 +16,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
-import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.fgputil.runtime.BuildStatus;
 import org.gusdb.sitesearch.service.metadata.CategoriesMetadata;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
@@ -70,18 +69,6 @@ public class Service {
 
   private static final String DOCUMENT_TYPE_FIELD = "document-type";
   private static final String ORGANISM_FIELD = "organism";
-  private static final String ID_FIELD = "id";
-
-  private static final String TEST_REQUEST =
-      "/select" +
-      "?q=exon" + // search term
-      "&qf=" + FormatUtil.urlEncodeUtf8("MULTITEXT__PdbSimilarities MULTITEXT__BlastP") +  // which fields to query (space or comma delimited)
-
-      "&rows=10" +
-      "&facet=true" +
-      "&facet.field=" + DOCUMENT_TYPE_FIELD +
-      "&defType=edismax" +     // query parser
-      "&fl=document-type,id"; // fields we want back
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -115,14 +102,20 @@ public class Service {
     SolrResponse response = Solr.executeQuery(allDocsRequest, true, resp -> {
       return Solr.parseResponse(allDocsRequest, resp);
     });
-    if (response.getFacetCounts().isPresent()) {
-      meta.applyFacetCounts(response.getFacetCounts().get());
+    if (response.getDocTypeFacetCounts().isPresent()) {
+      meta.applyFacetCounts(response.getDocTypeFacetCounts().get());
     }
     JSONObject resultJson = new JSONObject()
       .put("categories", meta.toJson())
       .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+      .put("organismCounts", getOrganismFacetJson(request, response).orElse(null))
       .put("searchResults", getDocumentsJson(meta, response.getDocuments()));
     return Response.ok(resultJson.toString(2)).build();
+  }
+
+  private Optional<JSONObject> getOrganismFacetJson(SearchRequest request, SolrResponse response) {
+    // TODO apply filter
+    return response.getOrganismFacetCounts().map(f -> new JSONObject(f));
   }
 
   private JSONArray getDocumentsJson(CategoriesMetadata meta, List<JSONObject> documents) {
@@ -130,13 +123,14 @@ public class Service {
       LOG.info("Processing document: " + documentJson.toString(2));
       DocumentType docType = meta.getDocumentType(documentJson.getString("document-type"))
         .orElseThrow(() -> new SiteSearchRuntimeException("Unknown document type returned in document: " + documentJson.toString(2))); 
-      String primaryKey = documentJson.optString("primaryKey", "<unknown!>");
+      JSONArray primaryKey = documentJson.getJSONArray("primaryKey");
       JSONObject json = new JSONObject()
         .put("documentType", docType.getId())
         .put("primaryKey", primaryKey);
       String value;
       for (DocumentField field : docType.getFields()) {
         if (field.isSummary()) {
+          // for now assume all summary fields are single text (multitext are arrays)
           if ((value = documentJson.optString(field.getName(), null)) != null) {
             json.put(field.getName(), value);
           }
@@ -145,7 +139,7 @@ public class Service {
           }
         }
       }
-      return documentJson;
+      return json;
     })
     .collect(Collectors.toList()));
   }
