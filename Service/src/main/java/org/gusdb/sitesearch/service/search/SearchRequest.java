@@ -50,6 +50,7 @@ public class SearchRequest {
   private static void ensureSubset(
       List<String> restrictSearchToOrganisms,
       List<String> restrictMetadataToOrganisms) {
+    if (restrictSearchToOrganisms == null || restrictMetadataToOrganisms == null) return;
     for (String org : restrictSearchToOrganisms) {
       if (!restrictMetadataToOrganisms.contains(org)) {
         throw new InvalidRequestException("All organisms in search must exist in organism metadata list");

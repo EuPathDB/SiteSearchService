@@ -116,10 +116,11 @@ public class Solr {
       throw handleError("SOLR response had non-zero embedded status (" + responseStatus + ")", requestSubpath, null);
     }
     JSONObject responseJson = responseBody.getJSONObject("response");
+    int totalCount = responseJson.getInt("numFound");
     List<JSONObject> documents = arrayStream(responseJson.getJSONArray("docs"))
         .map(val -> val.getJSONObject())
         .collect(Collectors.toList());
-    SolrResponse respObj = new SolrResponse(documents);
+    SolrResponse respObj = new SolrResponse(totalCount, documents);
     if (responseBody.has("facet_counts")) {
       LOG.info("Facet counts found with value: " + responseBody.getJSONObject("facet_counts").toString());
       respObj.setDocTypeFacetCounts(parseFacetCounts(responseBody, "document-type"));

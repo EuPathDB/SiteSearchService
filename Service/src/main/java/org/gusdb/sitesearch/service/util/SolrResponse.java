@@ -8,11 +8,13 @@ import org.json.JSONObject;
 
 public class SolrResponse {
 
+  private final int _totalCount;
   private final List<JSONObject> _documents;
   private Map<String,Integer> _docTypeFacetCounts;
   private Map<String,Integer> _organismFacetCounts;
 
-  public SolrResponse(List<JSONObject> documents) {
+  public SolrResponse(int totalCount, List<JSONObject> documents) {
+    _totalCount = totalCount;
     _documents = documents;
   }
 
@@ -34,5 +36,9 @@ public class SolrResponse {
 
   public Optional<Map<String,Integer>> getOrganismFacetCounts() {
     return Optional.ofNullable(_organismFacetCounts);
+  }
+
+  public int getTotalCount() {
+    return _totalCount;
   }
 }

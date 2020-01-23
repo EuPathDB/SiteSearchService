@@ -108,14 +108,27 @@ public class Service {
     JSONObject resultJson = new JSONObject()
       .put("categories", meta.toJson())
       .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
-      .put("organismCounts", getOrganismFacetJson(request, response).orElse(null))
-      .put("searchResults", getDocumentsJson(meta, response.getDocuments()));
+      .put("organismCounts", getOrganismFacetJson(response, request.getRestrictMetadataToOrganisms()).orElse(null))
+      .put("searchResults", new JSONObject()
+          .put("totalCount", response.getTotalCount())
+          .put("documents", getDocumentsJson(meta, response.getDocuments())));
     return Response.ok(resultJson.toString(2)).build();
   }
 
-  private Optional<JSONObject> getOrganismFacetJson(SearchRequest request, SolrResponse response) {
-    // TODO apply filter
-    return response.getOrganismFacetCounts().map(f -> new JSONObject(f));
+  private Optional<JSONObject> getOrganismFacetJson(SolrResponse response,
+      Optional<List<String>> restrictMetadataToOrganisms) {
+    return response.getOrganismFacetCounts().map(counts -> {
+      if (restrictMetadataToOrganisms.isEmpty()) {
+        return new JSONObject(counts);
+      }
+      JSONObject filteredMeta = new JSONObject();
+      for (String metaOrg : counts.keySet()) {
+        if (restrictMetadataToOrganisms.get().contains(metaOrg)) {
+          filteredMeta.put(metaOrg, counts.get(metaOrg));
+        }
+      }
+      return filteredMeta;
+    });
   }
 
   private JSONArray getDocumentsJson(CategoriesMetadata meta, List<JSONObject> documents) {
