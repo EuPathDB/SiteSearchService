@@ -1,6 +1,7 @@
 package org.gusdb.sitesearch.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -24,10 +25,10 @@ public class ResultsFormatter {
       .put("organismCounts", meta.getOrganismFacetCounts())
       .put("searchResults", new JSONObject()
         .put("totalCount", searchResults.getTotalCount())
-        .put("documents", getDocumentsJson(meta, searchResults.getDocuments())));
+        .put("documents", getDocumentsJson(meta, searchResults.getDocuments(), searchResults.getHighlighting())));
   }
 
-  private static JSONArray getDocumentsJson(Metadata meta, List<JSONObject> documents) {
+  private static JSONArray getDocumentsJson(Metadata meta, List<JSONObject> documents, Map<String, List<String>> highlighting) {
     return new JSONArray(documents.stream().map(documentJson -> {
       //LOG.debug("Processing document: " + documentJson.toString(2));
       DocumentType docType = meta.getDocumentType(documentJson.getString(SolrCalls.DOCUMENT_TYPE_FIELD))
@@ -35,7 +36,8 @@ public class ResultsFormatter {
       JSONArray primaryKey = documentJson.getJSONArray("primaryKey");
       JSONObject json = new JSONObject()
         .put("documentType", docType.getId())
-        .put("primaryKey", primaryKey);
+        .put("primaryKey", primaryKey)
+        .put("foundInFields", highlighting.get(documentJson.getString(SolrCalls.ID_FIELD)));
       JSONObject summaryFields = new JSONObject();
       JSONObject summaryMultiTextFields = new JSONObject();
       String value;

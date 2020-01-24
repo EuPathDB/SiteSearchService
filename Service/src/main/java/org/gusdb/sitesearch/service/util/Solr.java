@@ -6,6 +6,7 @@ import static org.gusdb.sitesearch.service.server.Context.SOLR_URL;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,12 +92,32 @@ public class Solr {
         .map(val -> val.getJSONObject())
         .collect(Collectors.toList());
     Map<String,Map<String,Integer>> facetCounts = parseFacetCounts(responseBody);
+    Map<String,List<String>> highlighting = parseHighlighting(responseBody);
     SolrResponse respObj = new SolrResponse(
         totalCount,
         documents,
-        facetCounts
+        facetCounts,
+        highlighting
     );
     return respObj;
+  }
+
+  private static Map<String, List<String>> parseHighlighting(JSONObject responseBody) {
+    Map<String,List<String>> highlighting = new HashMap<>();
+    if (responseBody.has("highlighting")) {
+      JSONObject highlights = responseBody.getJSONObject("highlighting");
+      for (String documentId : highlights.keySet()) {
+        List<String> highlightedFields = new ArrayList<>();
+        JSONObject fieldMap = highlights.getJSONObject(documentId);
+        for (String fieldName : fieldMap.keySet()) {
+          if (fieldMap.getJSONArray(fieldName).length() > 0) {
+            highlightedFields.add(fieldName);
+          }
+        }
+        highlighting.put(documentId, highlightedFields);
+      }
+    }
+    return highlighting;
   }
 
   private static Map<String,Map<String, Integer>> parseFacetCounts(JSONObject responseBody) {

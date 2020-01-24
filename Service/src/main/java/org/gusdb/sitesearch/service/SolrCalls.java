@@ -41,17 +41,29 @@ curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=*&fq=docume
  */
 public class SolrCalls {
 
+  // hard-coded document fields
   public static final String DOCUMENT_TYPE_FIELD = "document-type";
   public static final String ORGANISM_FIELD = "organism";
+  public static final String PROJECT_FIELD = "project";
+  public static final String ID_FIELD = "id";
 
+  // template for metadata document requests
   private static final Function<String,String> METADOC_REQUEST = docType ->
     "/select?q=*&fq=" + DOCUMENT_TYPE_FIELD + ":(" + docType + ")&fl=json-blob:[json]&wt=json";
 
+  // two different metadata requests required, defined by document type requested
   private static final String CATAGORIES_METADOC_REQUEST = METADOC_REQUEST.apply("document-categories");
   private static final String FIELDS_METADOC_REQUEST = METADOC_REQUEST.apply("document-fields");
 
+  /**
+   * Loads basic metadata (but not facet counts) using two SOLR searches which return:
+   * 1. a single categories/documentTypes JSON document, defining doc types and their categories
+   * 2. a single documentType fields JSON document, defining fields for each doc type
+   * 
+   * @return initial metadata object
+   */
   public static Metadata initializeMetadata() {
-    // initialize categories metadata object with categories document data
+    // initialize metadata object with categories and document data
     Metadata meta = Solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
       SolrResponse result = Solr.parseResponse(CATAGORIES_METADOC_REQUEST, response);
       return new Metadata(result);
@@ -63,39 +75,63 @@ public class SolrCalls {
     });
   }
 
+  /**
+   * Performs a SOLR search defined by the parameters of the request object and
+   * using fields defined by the metadata object
+   * 
+   * @param request request specified by the service caller
+   * @param meta metadata object populated by "static" calls to SOLR
+   * @param forOrganismFacets whether this search is specifically made to fetch
+   * counts of organisms in result.  If so, organism filter will NOT be applied,
+   * and we will request zero documents (an empty page) since it is not needed.
+   * Highlighting will also be turned off since it is not needed.
+   * @return SOLR search response
+   */
   public static SolrResponse getSearchResponse(SearchRequest request, Metadata meta, boolean forOrganismFacets) {
+    // don't need any documents in result if only collecting organism facets
     Pagination pagination = forOrganismFacets ? new Pagination(0,0) : request.getPagination();
+    // selecting search fields will apply fields filter if present
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter()));
+    String searchFiltersParam = buildQueryFilterParams(request, !forOrganismFacets);
     String filteredDocsRequest =
-        "/select" +
-        "?q=" + urlEncodeUtf8(request.getSearchText()) +
-        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(meta.getFields(request.getFilter()))) +
-        "&start=" + pagination.getOffset() +
-        "&rows=" + pagination.getNumRecords() +
-        "&facet=true" +
-        "&facet.field=" + DOCUMENT_TYPE_FIELD +
-        "&facet.field=" + ORGANISM_FIELD +
-        "&defType=edismax" + // query parser
-        buildQueryFilterParam(request, !forOrganismFacets);
+        "/select" +                                        // perform a search
+        "?q=" + urlEncodeUtf8(request.getSearchText()) +   // search text
+        "&qf=" + urlEncodeUtf8(searchFields) +             // fields to search
+        "&start=" + pagination.getOffset() +               // first row to return
+        "&rows=" + pagination.getNumRecords() +            // number of documents to return
+        "&facet=true" +                                    // use facets
+        "&facet.field=" + DOCUMENT_TYPE_FIELD +            // declare document-type as facet field
+        "&facet.field=" + ORGANISM_FIELD +                 // declare organism as facet field
+        "&defType=edismax" +                               // chosen query parser
+        (forOrganismFacets ? "" : "&hl=true") +            // turn on highlighting
+        (forOrganismFacets ? "" : "&hl.fl=*") +            // highlight matches on all fields
+        (forOrganismFacets ? "" : "&hl.method=unified") +  // chosen highlighting method
+        searchFiltersParam;                                // filters to apply to search
     return Solr.executeQuery(filteredDocsRequest, true, resp -> {
       return Solr.parseResponse(filteredDocsRequest, resp);
     });
   }
 
-  private static String buildQueryFilterParam(SearchRequest request, boolean includeOrganismFilter) {
-    return ""; //request.getRestrictToProject().map(project -> "&fq=(-project:[* TO *] OR project:" + project + ")").orElse("");
-    //if (request.getRestrictSearchToOrganisms().isPresent()) {
-      //String filterString = request.getRestrictSearchToOrganisms().get().stream()
-      //allDocsRequest += "&fq=organism:" +
+  private static String buildQueryFilterParams(SearchRequest request, boolean includeOrganismFilter) {
+    return
+      // apply project filter
+      request.getRestrictToProject().map(project -> "&fq=" + urlEncodeUtf8("(" + PROJECT_FIELD + ":[* TO *] OR " + PROJECT_FIELD + ":(" + project + "))")).orElse("") +
+      // apply docType filter
+      request.getFilter().map(filter -> "&fq=" + urlEncodeUtf8(DOCUMENT_TYPE_FIELD + ":(" + filter.getDocType() + ")")).orElse("") +
+      // apply organism filter only if asked
+      (!includeOrganismFilter ? "" :
+        request.getRestrictSearchToOrganisms().map(orgs -> ("&fq=" + urlEncodeUtf8("(" + ORGANISM_FIELD + ":[* TO *] OR " + getOrgFilterCondition(orgs) + ")"))).orElse(""));
+  }
 
-          //examples 
-          // (-PrivacyLevel:[* TO *] OR PrivacyLevel:2
-          // -(-price:[300 TO 400] AND price:[* TO *])
-    //}
+  private static String getOrgFilterCondition(List<String> organisms) {
+    return organisms.stream(
+        ).map(org -> ORGANISM_FIELD + ":(" + org + ")")
+        .collect(Collectors.joining(" OR "));
   }
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
     return fields.stream()
-        .map(field -> field.getName())// + "^" + field.getBoost()) <- TURN BACK ON TO SEE HOW TO GET ERROR MESSAGES BACK FROM SOLR
+        .map(field -> field.getName())// + "^" + field.getBoost()) <- FIXME: TURN BACK ON TO SEE HOW TO GET ERROR MESSAGES BACK FROM SOLR
         .collect(Collectors.joining(" "));
   }
 

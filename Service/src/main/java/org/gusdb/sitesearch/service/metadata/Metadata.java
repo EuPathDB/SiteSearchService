@@ -218,11 +218,28 @@ public class Metadata {
     return json;
   }
 
-  public List<DocumentField> getFields(Optional<DocTypeFilter> filter) {
+  public List<DocumentField> getSearchFields(Optional<DocTypeFilter> filter) {
     List<DocumentField> fields = new ArrayList<>();
     for (DocumentType type : _docTypes.values()) {
-      if (filter.isEmpty() || filter.get().getDocType().equals(type.getId())) {
+      // if no docType filter, then add all fields for all types
+      if (filter.isEmpty()) {
         fields.addAll(type.getFields());
+      }
+      // if docType filter present, add fields for only requested docType
+      else if (filter.get().getDocType().equals(type.getId())) {
+        // if no fields filter present, add all fields for this docType
+        if (filter.get().getFoundOnlyInFields().isEmpty()) {
+          fields.addAll(type.getFields());
+        }
+        // if fields filter present, only add fields for this docType which are also in the requested list
+        else {
+          List<String> requestedSearchFields = filter.get().getFoundOnlyInFields().get();
+          for (DocumentField field : type.getFields()) {
+            if (requestedSearchFields.contains(field.getName())) {
+              fields.add(field);
+            }
+          }
+        }
       }
     }
     return fields;
