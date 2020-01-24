@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 
 import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.Metadata;
-import org.gusdb.sitesearch.service.search.Pagination;
-import org.gusdb.sitesearch.service.search.SearchRequest;
-import org.gusdb.sitesearch.service.util.Solr;
-import org.gusdb.sitesearch.service.util.SolrResponse;
+import org.gusdb.sitesearch.service.request.Pagination;
+import org.gusdb.sitesearch.service.request.SearchRequest;
+import org.gusdb.sitesearch.service.solr.Solr;
+import org.gusdb.sitesearch.service.solr.SolrResponse;
 
 /**
  * Playing with Solr queries

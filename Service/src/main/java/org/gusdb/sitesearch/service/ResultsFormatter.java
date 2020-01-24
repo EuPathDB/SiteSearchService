@@ -5,12 +5,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
+import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.DocumentType;
 import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
-import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
-import org.gusdb.sitesearch.service.util.SolrResponse;
+import org.gusdb.sitesearch.service.solr.SolrResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

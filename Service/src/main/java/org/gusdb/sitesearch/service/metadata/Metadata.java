@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.MapBuilder;
 import org.gusdb.fgputil.Tuples.TwoTuple;
-import org.gusdb.sitesearch.service.search.DocTypeFilter;
-import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
-import org.gusdb.sitesearch.service.util.SolrResponse;
+import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
+import org.gusdb.sitesearch.service.request.DocTypeFilter;
+import org.gusdb.sitesearch.service.solr.SolrResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

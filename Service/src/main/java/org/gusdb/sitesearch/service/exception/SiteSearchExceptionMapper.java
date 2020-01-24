@@ -1,10 +1,9 @@
-package org.gusdb.sitesearch.service;
+package org.gusdb.sitesearch.service.exception;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import org.apache.log4j.Logger;
-import org.gusdb.sitesearch.service.util.SiteSearchRuntimeException;
 
 public class SiteSearchExceptionMapper implements ExceptionMapper<Exception> {
 

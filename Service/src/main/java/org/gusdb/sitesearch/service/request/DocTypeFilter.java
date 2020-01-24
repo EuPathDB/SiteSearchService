@@ -1,4 +1,4 @@
-package org.gusdb.sitesearch.service.search;
+package org.gusdb.sitesearch.service.request;
 
 import java.util.List;
 import java.util.Optional;

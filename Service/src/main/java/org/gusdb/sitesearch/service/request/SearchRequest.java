@@ -1,4 +1,4 @@
-package org.gusdb.sitesearch.service.search;
+package org.gusdb.sitesearch.service.request;
 
 import static java.util.Arrays.asList;
 import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
@@ -6,7 +6,7 @@ import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
 import java.util.List;
 import java.util.Optional;
 
-import org.gusdb.sitesearch.service.util.InvalidRequestException;
+import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.json.JSONObject;
 
 /**

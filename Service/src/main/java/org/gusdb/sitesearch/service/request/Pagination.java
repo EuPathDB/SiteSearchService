@@ -1,6 +1,6 @@
-package org.gusdb.sitesearch.service.search;
+package org.gusdb.sitesearch.service.request;
 
-import org.gusdb.sitesearch.service.util.InvalidRequestException;
+import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.json.JSONObject;
 
 public class Pagination {

@@ -6,7 +6,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.web.ApplicationContext;
 import org.gusdb.sitesearch.service.Service;
-import org.gusdb.sitesearch.service.SiteSearchExceptionMapper;
+import org.gusdb.sitesearch.service.exception.SiteSearchExceptionMapper;
 import org.json.JSONObject;
 
 public class Server extends RESTServer {

@@ -1,4 +1,4 @@
-package org.gusdb.sitesearch.service.util;
+package org.gusdb.sitesearch.service.solr;
 
 import java.util.List;
 import java.util.Map;

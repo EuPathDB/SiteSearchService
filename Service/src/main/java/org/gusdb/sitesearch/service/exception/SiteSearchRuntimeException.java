@@ -1,4 +1,4 @@
-package org.gusdb.sitesearch.service.util;
+package org.gusdb.sitesearch.service.exception;
 
 public class SiteSearchRuntimeException extends RuntimeException {
 

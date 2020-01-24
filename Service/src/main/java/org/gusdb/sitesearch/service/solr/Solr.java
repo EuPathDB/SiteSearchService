@@ -1,4 +1,4 @@
-package org.gusdb.sitesearch.service.util;
+package org.gusdb.sitesearch.service.solr;
 
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
 import static org.gusdb.sitesearch.service.server.Context.SOLR_URL;
@@ -25,6 +25,7 @@ import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.fgputil.IoUtil;
 import org.gusdb.fgputil.functional.FunctionalInterfaces.FunctionWithException;
 import org.gusdb.fgputil.server.RESTServer;
+import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;

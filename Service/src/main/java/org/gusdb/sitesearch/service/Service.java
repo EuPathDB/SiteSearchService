@@ -11,8 +11,8 @@ import javax.ws.rs.core.Response;
 import org.gusdb.fgputil.runtime.BuildStatus;
 import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
-import org.gusdb.sitesearch.service.search.SearchRequest;
-import org.gusdb.sitesearch.service.util.SolrResponse;
+import org.gusdb.sitesearch.service.request.SearchRequest;
+import org.gusdb.sitesearch.service.solr.SolrResponse;
 import org.json.JSONObject;
 
 @Path("/")
