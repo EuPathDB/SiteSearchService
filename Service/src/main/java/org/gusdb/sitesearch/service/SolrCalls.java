@@ -117,7 +117,7 @@ public class SolrCalls {
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
     return fields.stream()
-        .map(field -> field.getName() + "^" + String.format("%.2f", field.getBoost()))
+        .map(field -> field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
         .collect(Collectors.joining(" "));
   }
 }
