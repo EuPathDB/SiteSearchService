@@ -19,7 +19,7 @@ import org.json.JSONObject;
  *   restrictToProject?: string,
  *   restrictMetadataToOrganisms?: string[],
  *   restrictSearchToOrganisms?: string[], (must be subset of metadata orgs)
- *   docTypeFilter?: {
+ *   documentTypeFilter?: {
  *     documentType: string,
  *     foundOnlyInFields?: string[]
  *   }
@@ -43,8 +43,8 @@ public class SearchRequest {
     _restrictMetadataToOrganisms = getArrayValues(requestJson, "restrictMetadataToOrganisms");
     _restrictSearchToOrganisms = getArrayValues(requestJson, "restrictSearchToOrganisms");
     ensureSubset(_restrictSearchToOrganisms, _restrictMetadataToOrganisms);
-    _filter = !requestJson.has("filter") ? null :
-      new DocTypeFilter(requestJson.getJSONObject("filter"));
+    _filter = !requestJson.has("documentTypeFilter") ? null :
+      new DocTypeFilter(requestJson.getJSONObject("documentTypeFilter"));
   }
 
   private static void ensureSubset(

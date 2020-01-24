@@ -114,18 +114,30 @@ public class SolrCalls {
 
   private static String buildQueryFilterParams(SearchRequest request, boolean includeOrganismFilter) {
     return
-      // apply project filter
-      request.getRestrictToProject().map(project -> "&fq=" + urlEncodeUtf8("(" + PROJECT_FIELD + ":[* TO *] OR " + PROJECT_FIELD + ":(" + project + "))")).orElse("") +
+
+        // apply project filter
+      // example: -(project:[* TO *] AND -project:(PlasmoDB))
+      request.getRestrictToProject().map(project ->
+        "&fq=" + urlEncodeUtf8("-(" + PROJECT_FIELD + ":[* TO *] AND -" + PROJECT_FIELD + ":(" + project + "))")
+      ).orElse("") +
+
       // apply docType filter
-      request.getFilter().map(filter -> "&fq=" + urlEncodeUtf8(DOCUMENT_TYPE_FIELD + ":(" + filter.getDocType() + ")")).orElse("") +
+      // example: document-type:(gene)
+      request.getFilter().map(filter ->
+         "&fq=" + urlEncodeUtf8(DOCUMENT_TYPE_FIELD + ":(" + filter.getDocType() + ")")
+      ).orElse("") +
+
       // apply organism filter only if asked
+      // example: -(organism:[* TO *] AND -organism:("Plasmodium falciparum 3D7" OR "Plasmodium falciparum 7G8"))
       (!includeOrganismFilter ? "" :
-        request.getRestrictSearchToOrganisms().map(orgs -> ("&fq=" + urlEncodeUtf8("(" + ORGANISM_FIELD + ":[* TO *] OR " + getOrgFilterCondition(orgs) + ")"))).orElse(""));
+        request.getRestrictSearchToOrganisms().map(orgs ->
+          "&fq=" + urlEncodeUtf8("-(" + ORGANISM_FIELD + ":[* TO *] AND -" + ORGANISM_FIELD + ":(" + getOrgFilterCondition(orgs) + "))")
+        ).orElse(""));
   }
 
   private static String getOrgFilterCondition(List<String> organisms) {
     return organisms.stream(
-        ).map(org -> ORGANISM_FIELD + ":(" + org + ")")
+        ).map(org -> "\"" + org + "\"")
         .collect(Collectors.joining(" OR "));
   }
 
