@@ -13,32 +13,6 @@ import org.gusdb.sitesearch.service.request.SearchRequest;
 import org.gusdb.sitesearch.service.solr.Solr;
 import org.gusdb.sitesearch.service.solr.SolrResponse;
 
-/**
- * Playing with Solr queries
-
-query to see what batches are loaded
-
-curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=*&fq=document-type:(batch-meta)"
-
-queries for left panel counts:
-
-curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=kinase&fl=document-type&rows=1000000&wt=csv"
-curl -s https://solr.local.apidb.org:8443/solr/test_core/select?q=identity&rows=100000&defType=edismax&fl=document-type&wt=csv"
-
-queries for field counts
-
-curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=identity&qf=TABLE__gene_PdbSimilarities%20TABLE__gene_BlastP&rows=1&hl=true&hl.fl=*&hl.method=unified&defType=edismax&fl=document-type,id"
-
-queries to performance test highlighting
-
-time curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=identity&qf=TABLE__gene_PdbSimilarities%20TABLE__gene_BlastP&rows=100000&hl=false&hl.fl=*&hl.method=unified&defType=edismax&fl=document-type,id" | grep document-type | wc
-time curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=identity&qf=TABLE__gene_PdbSimilarities%20TABLE__gene_BlastP&rows=100000&hl=true&hl.fl=*&hl.method=unified&defType=edismax&fl=document-type,id" | grep document-type | wc
-
-query for json blob
-
-curl -s "https://solr.local.apidb.org:8443/solr/site_search/select?q=*&fq=document-type:(document-categories)&fl=json-blob:[json]&wt=json"
-
- */
 public class SolrCalls {
 
   // hard-coded document fields
@@ -143,8 +117,7 @@ public class SolrCalls {
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
     return fields.stream()
-        .map(field -> field.getName())// + "^" + field.getBoost()) <- FIXME: TURN BACK ON TO SEE HOW TO GET ERROR MESSAGES BACK FROM SOLR
+        .map(field -> field.getName() + "^" + String.format("%.2f", field.getBoost()))
         .collect(Collectors.joining(" "));
   }
-
 }
