@@ -4,6 +4,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import org.apache.log4j.Logger;
+import org.gusdb.fgputil.solr.SolrRuntimeException;
 
 public class SiteSearchExceptionMapper implements ExceptionMapper<Exception> {
 
@@ -13,7 +14,7 @@ public class SiteSearchExceptionMapper implements ExceptionMapper<Exception> {
   public Response toResponse(Exception exception) {
     try { throw exception; }
 
-    catch (SiteSearchRuntimeException e) {
+    catch (SolrRuntimeException | SiteSearchRuntimeException e) {
       LOG.error("Server runtime exception occurred while processing request", e);
       return Response.serverError().build();
     }

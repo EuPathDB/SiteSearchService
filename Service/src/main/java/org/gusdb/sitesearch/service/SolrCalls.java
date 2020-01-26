@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.gusdb.fgputil.solr.Solr;
+import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.Pagination;
 import org.gusdb.sitesearch.service.request.SearchRequest;
-import org.gusdb.sitesearch.service.solr.Solr;
-import org.gusdb.sitesearch.service.solr.SolrResponse;
 
 public class SolrCalls {
 
@@ -36,14 +36,14 @@ public class SolrCalls {
    * 
    * @return initial metadata object
    */
-  public static Metadata initializeMetadata() {
+  public static Metadata initializeMetadata(Solr solr) {
     // initialize metadata object with categories and document data
-    Metadata meta = Solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
+    Metadata meta = solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
       SolrResponse result = Solr.parseResponse(CATAGORIES_METADOC_REQUEST, response);
       return new Metadata(result);
     });
     // supplement doc types with the fields in those doc types
-    return Solr.executeQuery(FIELDS_METADOC_REQUEST, true, response -> {
+    return solr.executeQuery(FIELDS_METADOC_REQUEST, true, response -> {
       SolrResponse result = Solr.parseResponse(FIELDS_METADOC_REQUEST, response);
       return meta.addFieldData(result);
     });
@@ -61,7 +61,7 @@ public class SolrCalls {
    * Highlighting will also be turned off since it is not needed.
    * @return SOLR search response
    */
-  public static SolrResponse getSearchResponse(SearchRequest request, Metadata meta, boolean forOrganismFacets) {
+  public static SolrResponse getSearchResponse(Solr solr, SearchRequest request, Metadata meta, boolean forOrganismFacets) {
     // don't need any documents in result if only collecting organism facets
     Pagination pagination = forOrganismFacets ? new Pagination(0,0) : request.getPagination();
     // selecting search fields will apply fields filter if present
@@ -81,7 +81,7 @@ public class SolrCalls {
         (forOrganismFacets ? "" : "&hl.fl=*") +            // highlight matches on all fields
         (forOrganismFacets ? "" : "&hl.method=unified") +  // chosen highlighting method
         searchFiltersParam;                                // filters to apply to search
-    return Solr.executeQuery(filteredDocsRequest, true, resp -> {
+    return solr.executeQuery(filteredDocsRequest, true, resp -> {
       return Solr.parseResponse(filteredDocsRequest, resp);
     });
   }

@@ -6,8 +6,4 @@ public class SiteSearchRuntimeException extends RuntimeException {
     super(message);
   }
 
-  public SiteSearchRuntimeException(String message, Exception cause) {
-    super(message, cause);
-  }
-
 }

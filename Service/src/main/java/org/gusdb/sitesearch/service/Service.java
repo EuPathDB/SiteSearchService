@@ -9,14 +9,21 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.gusdb.fgputil.runtime.BuildStatus;
+import org.gusdb.fgputil.server.RESTServer;
+import org.gusdb.fgputil.solr.Solr;
+import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
-import org.gusdb.sitesearch.service.solr.SolrResponse;
+import org.gusdb.sitesearch.service.server.Context;
 import org.json.JSONObject;
 
 @Path("/")
 public class Service {
+
+  private static Solr getSolr() {
+    return new Solr((String)RESTServer.getApplicationContext().get(Context.SOLR_URL));
+  }
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -24,22 +31,22 @@ public class Service {
       @QueryParam("searchText") String searchText,
       @QueryParam("offset") int offset,
       @QueryParam("numRecords") int numRecords) {
-    return handleSearchRequest(new SearchRequest(searchText, offset, numRecords));
+    return handleSearchRequest(getSolr(), new SearchRequest(searchText, offset, numRecords));
   }
 
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
-    return handleSearchRequest(new SearchRequest(new JSONObject(body)));
+    return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body)));
   }
 
-  private Response handleSearchRequest(SearchRequest request) {
+  private static Response handleSearchRequest(Solr solr, SearchRequest request) {
 
     // initialize metadata (2 SOLR calls for docTypes and fields)
-    Metadata meta = SolrCalls.initializeMetadata();
+    Metadata meta = SolrCalls.initializeMetadata(solr);
 
     // get response with all filters in request applied
-    SolrResponse searchResults = SolrCalls.getSearchResponse(request, meta, false);
+    SolrResponse searchResults = SolrCalls.getSearchResponse(solr, request, meta, false);
 
     // apply facets
     meta.applyDocTypeFacetCounts(searchResults.getFacetCounts());
@@ -47,7 +54,7 @@ public class Service {
 
     if (request.hasOrganismFilter()) {
       // need a second call; one without organism filter applied to get org facets
-      SolrResponse facetResponse = SolrCalls.getSearchResponse(request, meta, true);
+      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true);
       meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
     }
 
@@ -58,7 +65,7 @@ public class Service {
   @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCategoriesJson() {
-    Metadata meta = SolrCalls.initializeMetadata();
+    Metadata meta = SolrCalls.initializeMetadata(getSolr());
     return Response.ok(
       new JSONObject()
         .put("categories", meta.getCategoriesJson())
