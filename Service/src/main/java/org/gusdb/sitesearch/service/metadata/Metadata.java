@@ -134,6 +134,7 @@ public class Metadata {
               docTypeObj.getString("id"),
               docTypeObj.getString("displayName"),
               docTypeObj.getString("displayNamePlural"),
+              docTypeObj.getBoolean("hasOrganismField"),
               docTypeObj.optString("wdkSearchUrlName", null)))
           .collect(Collectors.toList())))
       .collect(Collectors.toList());

@@ -21,6 +21,8 @@ public class SolrCalls {
   public static final String PROJECT_FIELD = "project";
   public static final String ID_FIELD = "id";
 
+  private static final int PRIMARY_KEY_BOOST_VALUE = 100;
+
   // template for metadata document requests
   private static final Function<String,String> METADOC_REQUEST = docType ->
     "/select?q=*&fq=" + DOCUMENT_TYPE_FIELD + ":(" + docType + ")&fl=json-blob:[json]&wt=json";
@@ -116,8 +118,8 @@ public class SolrCalls {
   }
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
-    return fields.stream()
-        .map(field -> field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
-        .collect(Collectors.joining(" "));
+    return "primaryKey^" + PRIMARY_KEY_BOOST_VALUE + (fields.isEmpty() ? "" : fields.stream()
+        .map(field -> " " + field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
+        .collect(Collectors.joining("")));
   }
 }
