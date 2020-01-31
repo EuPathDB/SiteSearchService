@@ -1,6 +1,7 @@
 package org.gusdb.sitesearch.service;
 
 import static org.gusdb.fgputil.FormatUtil.NL;
+import static org.gusdb.fgputil.FormatUtil.TAB;
 import static org.gusdb.fgputil.FormatUtil.urlEncodeUtf8;
 
 import java.io.BufferedWriter;
@@ -144,8 +145,8 @@ public class SolrCalls {
         "&qf=" + urlEncodeUtf8(searchFields) +             // fields to search
         "&rows=" + FETCH_SIZE_FROM_SOLR +                  // number of documents to return
         "&defType=edismax" +                               // chosen query parser
-        "&sort=" + urlEncodeUtf8("id asc") +               // sort by ID
-        "&fl=primaryKey" +                                 // fields to return
+        "&sort=" + urlEncodeUtf8("score desc, id asc") +   // sort by score
+        "&fl=" + urlEncodeUtf8("primaryKey score") +       // fields to return
         "&echoParams=none" +                               // do not echo param info
         searchFiltersParam;                                // filters to apply to search
     while (!nextCursorMark.equals(lastCursorMark)) {
@@ -154,7 +155,10 @@ public class SolrCalls {
         return Solr.parseResponse(requestUrl, resp);
       });
       for (JSONObject document : response.getDocuments()) {
-        writer.write(document.getJSONArray("primaryKey").toString() + NL);
+        writer.write(document.getJSONArray("primaryKey").toString());
+        writer.write(TAB);
+        writer.write(String.valueOf(document.getInt("score")));
+        writer.write(NL);
       }
       lastCursorMark = nextCursorMark;
       nextCursorMark = response.getNextCursorMark().get();
