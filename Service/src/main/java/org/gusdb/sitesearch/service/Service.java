@@ -1,17 +1,25 @@
 package org.gusdb.sitesearch.service;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Optional;
+
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.gusdb.fgputil.runtime.BuildStatus;
 import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.solr.Solr;
 import org.gusdb.fgputil.solr.SolrResponse;
+import org.gusdb.fgputil.web.MimeTypes;
 import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
@@ -30,14 +38,45 @@ public class Service {
   public Response runSearch(
       @QueryParam("searchText") String searchText,
       @QueryParam("offset") int offset,
-      @QueryParam("numRecords") int numRecords) {
-    return handleSearchRequest(getSolr(), new SearchRequest(searchText, offset, numRecords));
+      @QueryParam("numRecords") int numRecords,
+      @QueryParam("projectId") String projectId,
+      @QueryParam("docType") String docType) {
+    return handleSearchRequest(getSolr(), new SearchRequest(searchText,
+        offset, numRecords, Optional.ofNullable(docType), Optional.ofNullable(projectId)));
   }
 
   @POST
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
-    return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body)));
+    return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body), true));
+  }
+
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MimeTypes.ND_JSON)
+  public Response getStreamingResults(String body) {
+    return handleStreamRequest(getSolr(), new SearchRequest(new JSONObject(body), false));
+  }
+
+  @GET
+  @Path("/categories-metadata")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getCategoriesJson() {
+    Metadata meta = SolrCalls.initializeMetadata(getSolr());
+    return Response.ok(
+      new JSONObject()
+        .put("categories", meta.getCategoriesJson())
+        .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+        .toString(2)
+    ).build();
+  }
+
+  @GET
+  @Path("/build-status")
+  @Produces(MediaType.TEXT_PLAIN)
+  public Response getBuildStatus() {
+    return Response.ok(BuildStatus.getLatestBuildStatus()).build();
   }
 
   private static Response handleSearchRequest(Solr solr, SearchRequest request) {
@@ -61,23 +100,17 @@ public class Service {
     return Response.ok(ResultsFormatter.formatResults(meta, searchResults).toString(2)).build();
   }
 
-  @GET
-  @Path("/categories-metadata")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response getCategoriesJson() {
-    Metadata meta = SolrCalls.initializeMetadata(getSolr());
-    return Response.ok(
-      new JSONObject()
-        .put("categories", meta.getCategoriesJson())
-        .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
-        .toString(2)
-    ).build();
-  }
+  private static Response handleStreamRequest(Solr solr, SearchRequest request) {
 
-  @GET
-  @Path("/build-status")
-  @Produces(MediaType.TEXT_PLAIN)
-  public Response getBuildStatus() {
-    return Response.ok(BuildStatus.getLatestBuildStatus()).build();
+    // initialize metadata (2 SOLR calls for docTypes and fields)
+    Metadata meta = SolrCalls.initializeMetadata(solr);
+
+    return Response.ok(new StreamingOutput() {
+      @Override
+      public void write(OutputStream output) throws IOException, WebApplicationException {
+        // make the search request and stream primary keys to the client
+        SolrCalls.writeSearchResponse(solr, request, meta, output);
+      }
+    }).build();
   }
 }

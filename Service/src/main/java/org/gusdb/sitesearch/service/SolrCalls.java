@@ -1,7 +1,12 @@
 package org.gusdb.sitesearch.service;
 
+import static org.gusdb.fgputil.FormatUtil.NL;
 import static org.gusdb.fgputil.FormatUtil.urlEncodeUtf8;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -12,6 +17,7 @@ import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.Pagination;
 import org.gusdb.sitesearch.service.request.SearchRequest;
+import org.json.JSONObject;
 
 public class SolrCalls {
 
@@ -21,7 +27,9 @@ public class SolrCalls {
   public static final String PROJECT_FIELD = "project";
   public static final String ID_FIELD = "id";
 
+  // tuning constants
   private static final int PRIMARY_KEY_BOOST_VALUE = 100;
+  private static final int FETCH_SIZE_FROM_SOLR = 10000;
 
   // template for metadata document requests
   private static final Function<String,String> METADOC_REQUEST = docType ->
@@ -65,7 +73,8 @@ public class SolrCalls {
    */
   public static SolrResponse getSearchResponse(Solr solr, SearchRequest request, Metadata meta, boolean forOrganismFacets) {
     // don't need any documents in result if only collecting organism facets
-    Pagination pagination = forOrganismFacets ? new Pagination(0,0) : request.getPagination();
+    Pagination pagination = forOrganismFacets ? new Pagination(0,0) :
+      request.getPagination().get(); // should always be present for this call; bug if not
     // selecting search fields will apply fields filter if present
     String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter()));
     String searchFiltersParam = buildQueryFilterParams(request, !forOrganismFacets);
@@ -122,4 +131,35 @@ public class SolrCalls {
         .map(field -> " " + field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
         .collect(Collectors.joining("")));
   }
+
+  public static void writeSearchResponse(Solr solr, SearchRequest request, Metadata meta, OutputStream output) throws IOException {
+    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
+    String nextCursorMark = "*";
+    String lastCursorMark = null;
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter()));
+    String searchFiltersParam = buildQueryFilterParams(request, true);
+    String staticPortionOfRequest =
+        "/select" +                                        // perform a search
+        "?q=" + urlEncodeUtf8(request.getSearchText()) +   // search text
+        "&qf=" + urlEncodeUtf8(searchFields) +             // fields to search
+        "&rows=" + FETCH_SIZE_FROM_SOLR +                  // number of documents to return
+        "&defType=edismax" +                               // chosen query parser
+        "&sort=" + urlEncodeUtf8("id asc") +               // sort by ID
+        "&fl=primaryKey" +                                 // fields to return
+        "&echoParams=none" +                               // do not echo param info
+        searchFiltersParam;                                // filters to apply to search
+    while (!nextCursorMark.equals(lastCursorMark)) {
+      String requestUrl = staticPortionOfRequest + "&cursorMark=" + urlEncodeUtf8(nextCursorMark);
+      SolrResponse response = solr.executeQuery(requestUrl, true, resp -> {
+        return Solr.parseResponse(requestUrl, resp);
+      });
+      for (JSONObject document : response.getDocuments()) {
+        writer.write(document.getJSONArray("primaryKey").toString() + NL);
+      }
+      lastCursorMark = nextCursorMark;
+      nextCursorMark = response.getNextCursorMark().get();
+    }
+    writer.flush();
+  }
+
 }

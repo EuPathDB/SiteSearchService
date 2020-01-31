@@ -34,11 +34,19 @@ public class SearchRequest {
   private final List<String> _restrictSearchToOrganisms;
   private final DocTypeFilter _filter;
 
-  public SearchRequest(JSONObject requestJson) {
+  public SearchRequest(JSONObject requestJson, boolean expectAndRequirePagination) {
     _searchText = requestJson.getString("searchText");
-    _pagination = new Pagination(requestJson.getJSONObject("pagination"));
-    if (_pagination.getNumRecords() > 50)
-      throw new InvalidRequestException("numRecords must be <= 50");
+    if (expectAndRequirePagination) {
+      _pagination = new Pagination(requestJson.getJSONObject("pagination"));
+      if (_pagination.getNumRecords() > 50)
+        throw new InvalidRequestException("numRecords must be <= 50");
+    }
+    else {
+      if (requestJson.has("pagination")) {
+        throw new InvalidRequestException("pagination property is not allowed");
+      }
+      _pagination = null;
+    }
     _restrictToProject = requestJson.optString("restrictToProject", null);
     _restrictMetadataToOrganisms = getArrayValues(requestJson, "restrictMetadataToOrganisms");
     _restrictSearchToOrganisms = getArrayValues(requestJson, "restrictSearchToOrganisms");
@@ -64,21 +72,22 @@ public class SearchRequest {
     return values != null && values.isEmpty() ? null : values;
   }
 
-  public SearchRequest(String searchText, int offset, int numRecords) {
+  public SearchRequest(String searchText, int offset, int numRecords,
+      Optional<String> docTypeFilter, Optional<String> projectIdFilter) {
     _searchText = searchText;
     _pagination = new Pagination(offset, numRecords);
-    _restrictToProject = null;
+    _restrictToProject = projectIdFilter.orElse(null);
+    _filter = docTypeFilter.map(docType -> new DocTypeFilter(new JSONObject().put("documentType", docType))).orElse(null);
     _restrictMetadataToOrganisms = null;
     _restrictSearchToOrganisms = null;
-    _filter = null;
   }
 
   public String getSearchText() {
     return _searchText;
   }
 
-  public Pagination getPagination() {
-    return _pagination;
+  public Optional<Pagination> getPagination() {
+    return Optional.ofNullable(_pagination);
   }
 
   public Optional<String> getRestrictToProject() {
