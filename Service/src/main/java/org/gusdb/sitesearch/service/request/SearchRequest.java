@@ -94,7 +94,7 @@ public class SearchRequest {
    */
   private String translateSearchText(String rawSearchText) {
     return Arrays.stream(rawSearchText.split("\\s"))
-        .map(token -> "\"" + token + "\"")
+        .map(token -> token.indexOf("*") == -1 ? "\"" + token + "\"" : token)
         .collect(Collectors.joining(" "));
   }
 
