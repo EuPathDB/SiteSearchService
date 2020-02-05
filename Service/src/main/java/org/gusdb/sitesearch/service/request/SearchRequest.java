@@ -3,8 +3,10 @@ package org.gusdb.sitesearch.service.request;
 import static java.util.Arrays.asList;
 import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.json.JSONObject;
@@ -35,7 +37,7 @@ public class SearchRequest {
   private final DocTypeFilter _filter;
 
   public SearchRequest(JSONObject requestJson, boolean expectAndRequirePagination) {
-    _searchText = requestJson.getString("searchText");
+    _searchText = translateSearchText(requestJson.getString("searchText"));
     if (expectAndRequirePagination) {
       _pagination = new Pagination(requestJson.getJSONObject("pagination"));
       if (_pagination.getNumRecords() > 50)
@@ -74,12 +76,26 @@ public class SearchRequest {
 
   public SearchRequest(String searchText, int offset, int numRecords,
       Optional<String> docTypeFilter, Optional<String> projectIdFilter) {
-    _searchText = searchText;
+    _searchText = translateSearchText(searchText);
     _pagination = new Pagination(offset, numRecords);
     _restrictToProject = projectIdFilter.orElse(null);
     _filter = docTypeFilter.map(docType -> new DocTypeFilter(new JSONObject().put("documentType", docType))).orElse(null);
     _restrictMetadataToOrganisms = null;
     _restrictSearchToOrganisms = null;
+  }
+
+  /**
+   * Hack to prevent false positives based on the way we are configuring SOLR.
+   * Will split on whitespace, then wrap each token with double-quotes, then
+   * rejoin them with a space delimiter.
+   *
+   * @param rawSearchText input string from the user
+   * @return translated search term string that behaves better
+   */
+  private String translateSearchText(String rawSearchText) {
+    return Arrays.stream(rawSearchText.split("\\s"))
+        .map(token -> "\"" + token + "\"")
+        .collect(Collectors.joining(" "));
   }
 
   public String getSearchText() {
