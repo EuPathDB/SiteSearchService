@@ -49,14 +49,22 @@ public class Service {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
-    return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body), true));
+    return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body), true, false, false));
+  }
+
+  @POST
+  @Path("/field-counts")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getFieldCounts(String body) {
+    return handleFieldCountsRequest(getSolr(), new SearchRequest(new JSONObject(body), false, true, true));
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MimeTypes.ND_JSON)
   public Response getStreamingResults(String body) {
-    return handleStreamRequest(getSolr(), new SearchRequest(new JSONObject(body), false));
+    return handleStreamRequest(getSolr(), new SearchRequest(new JSONObject(body), false, true, false));
   }
 
   @GET
@@ -98,6 +106,14 @@ public class Service {
     }
 
     return Response.ok(ResultsFormatter.formatResults(meta, searchResults).toString(2)).build();
+  }
+
+  private Response handleFieldCountsRequest(Solr solr, SearchRequest searchRequest) {
+
+    // initialize metadata (2 SOLR calls for docTypes and fields)
+    Metadata meta = SolrCalls.initializeMetadata(solr);
+
+    return Response.ok(new JSONObject(SolrCalls.getFieldsHighlightingCounts(solr, searchRequest, meta))).build();
   }
 
   private static Response handleStreamRequest(Solr solr, SearchRequest request) {

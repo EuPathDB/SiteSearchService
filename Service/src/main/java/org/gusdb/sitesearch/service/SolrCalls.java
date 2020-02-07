@@ -8,7 +8,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -164,6 +166,13 @@ public class SolrCalls {
       nextCursorMark = response.getNextCursorMark().get();
     }
     writer.flush();
+  }
+
+  @SuppressWarnings("unused")
+  public static Map<String,Integer> getFieldsHighlightingCounts(
+      Solr solr, SearchRequest searchRequest, Metadata meta) {
+    // TODO: implement (once performance testing is done on SOLR)
+    return new HashMap<>();
   }
 
 }

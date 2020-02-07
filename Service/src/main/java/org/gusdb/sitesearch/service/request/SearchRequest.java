@@ -36,7 +36,7 @@ public class SearchRequest {
   private final List<String> _restrictSearchToOrganisms;
   private final DocTypeFilter _filter;
 
-  public SearchRequest(JSONObject requestJson, boolean expectAndRequirePagination) {
+  public SearchRequest(JSONObject requestJson, boolean expectAndRequirePagination, boolean requireDocTypeFilter, boolean disallowFieldFilters) {
     _searchText = translateSearchText(requestJson.getString("searchText"));
     if (expectAndRequirePagination) {
       _pagination = new Pagination(requestJson.getJSONObject("pagination"));
@@ -55,6 +55,12 @@ public class SearchRequest {
     ensureSubset(_restrictSearchToOrganisms, _restrictMetadataToOrganisms);
     _filter = !requestJson.has("documentTypeFilter") ? null :
       new DocTypeFilter(requestJson.getJSONObject("documentTypeFilter"));
+    if (_filter == null && requireDocTypeFilter) {
+      throw new InvalidRequestException("'documentTypeFilter' and contained 'documentType' properties are required at this endpoint.");
+    }
+    if (_filter != null && _filter.getFoundOnlyInFields().isPresent() && disallowFieldFilters) {
+      throw new InvalidRequestException("Field filters ('foundOnlyInFields' property) are not allowed at this endpoint.");
+    }
   }
 
   private static void ensureSubset(
