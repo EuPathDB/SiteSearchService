@@ -79,7 +79,7 @@ public class SolrCalls {
     Pagination pagination = forOrganismFacets ? new Pagination(0,0) :
       request.getPagination().get(); // should always be present for this call; bug if not
     // selecting search fields will apply fields filter if present
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter()));
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter(), request.getRestrictToProject()));
     String searchFiltersParam = buildQueryFilterParams(request, !forOrganismFacets);
     String filteredDocsRequest =
         "/select" +                                        // perform a search
@@ -139,7 +139,7 @@ public class SolrCalls {
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
     String nextCursorMark = "*";
     String lastCursorMark = null;
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter()));
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter(), request.getRestrictToProject()));
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String staticPortionOfRequest =
         "/select" +                                        // perform a search

@@ -135,6 +135,7 @@ public class Metadata {
               docTypeObj.getString("displayName"),
               docTypeObj.getString("displayNamePlural"),
               docTypeObj.getBoolean("hasOrganismField"),
+              docTypeObj.optDouble("boost", 1),
               docTypeObj.optString("wdkSearchUrlName", null)))
           .collect(Collectors.toList())))
       .collect(Collectors.toList());
@@ -211,31 +212,31 @@ public class Metadata {
     return catsJson;
   }
 
-  public JSONArray getDocumentTypesJson(JsonDestination dest) {
+  public JSONArray getDocumentTypesJson(Optional<String> projectId) {
     JSONArray json = new JSONArray();
     for (DocumentType docType : _docTypes.values()) {
-      json.put(docType.toJson(dest));
+      json.put(docType.toJson(projectId));
     }
     return json;
   }
 
-  public List<DocumentField> getSearchFields(Optional<DocTypeFilter> filter) {
+  public List<DocumentField> getSearchFields(Optional<DocTypeFilter> filter, Optional<String> projectFilter) {
     List<DocumentField> fields = new ArrayList<>();
     for (DocumentType type : _docTypes.values()) {
       // if no docType filter, then add all fields for all types
       if (filter.isEmpty()) {
-        fields.addAll(type.getFields());
+        fields.addAll(type.getFields(projectFilter));
       }
       // if docType filter present, add fields for only requested docType
       else if (filter.get().getDocType().equals(type.getId())) {
         // if no fields filter present, add all fields for this docType
         if (filter.get().getFoundOnlyInFields().isEmpty()) {
-          fields.addAll(type.getFields());
+          fields.addAll(type.getFields(projectFilter));
         }
         // if fields filter present, only add fields for this docType which are also in the requested list
         else {
           List<String> requestedSearchFields = filter.get().getFoundOnlyInFields().get();
-          for (DocumentField field : type.getFields()) {
+          for (DocumentField field : type.getFields(projectFilter)) {
             if (requestedSearchFields.contains(field.getName())) {
               fields.add(field);
             }

@@ -20,7 +20,6 @@ import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.solr.Solr;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.fgputil.web.MimeTypes;
-import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
 import org.gusdb.sitesearch.service.server.Context;
@@ -70,12 +69,12 @@ public class Service {
   @GET
   @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getCategoriesJson() {
+  public Response getCategoriesJson(@QueryParam("projectId") String projectId) {
     Metadata meta = SolrCalls.initializeMetadata(getSolr());
     return Response.ok(
       new JSONObject()
         .put("categories", meta.getCategoriesJson())
-        .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+        .put("documentTypes", meta.getDocumentTypesJson(Optional.ofNullable(projectId)))
         .toString(2)
     ).build();
   }
@@ -105,7 +104,7 @@ public class Service {
       meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
     }
 
-    return Response.ok(ResultsFormatter.formatResults(meta, searchResults).toString(2)).build();
+    return Response.ok(ResultsFormatter.formatResults(meta, searchResults, request.getRestrictToProject()).toString(2)).build();
   }
 
   private Response handleFieldCountsRequest(Solr solr, SearchRequest searchRequest) {

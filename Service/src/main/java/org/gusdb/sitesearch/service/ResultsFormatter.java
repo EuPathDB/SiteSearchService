@@ -1,15 +1,15 @@
 package org.gusdb.sitesearch.service;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
+import org.gusdb.fgputil.solr.Solr.Highlighting;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.DocumentType;
-import org.gusdb.sitesearch.service.metadata.JsonDestination;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,17 +18,17 @@ public class ResultsFormatter {
 
   private static final Logger LOG = Logger.getLogger(ResultsFormatter.class);
 
-  public static JSONObject formatResults( Metadata meta, SolrResponse searchResults) {
+  public static JSONObject formatResults(Metadata meta, SolrResponse searchResults, Optional<String> restrictToProject) {
     return new JSONObject()
       .put("categories", meta.getCategoriesJson())
-      .put("documentTypes", meta.getDocumentTypesJson(JsonDestination.OUTPUT))
+      .put("documentTypes", meta.getDocumentTypesJson(restrictToProject))
       .put("organismCounts", meta.getOrganismFacetCounts())
       .put("searchResults", new JSONObject()
         .put("totalCount", searchResults.getTotalCount())
-        .put("documents", getDocumentsJson(meta, searchResults.getDocuments(), searchResults.getHighlighting())));
+        .put("documents", getDocumentsJson(meta, searchResults.getDocuments(), searchResults.getHighlighting(), restrictToProject)));
   }
 
-  private static JSONArray getDocumentsJson(Metadata meta, List<JSONObject> documents, Map<String, List<String>> highlighting) {
+  private static JSONArray getDocumentsJson(Metadata meta, List<JSONObject> documents, Highlighting highlighting, Optional<String> restrictToProject) {
     return new JSONArray(documents.stream()
       // filter out batch-meta documents
       .filter(documentJson -> !("batch-meta".equals(documentJson.getString(SolrCalls.DOCUMENT_TYPE_FIELD))))
@@ -47,7 +47,7 @@ public class ResultsFormatter {
         JSONObject summaryFields = new JSONObject();
         String value;
         JSONArray values;
-        for (DocumentField field : docType.getFields()) {
+        for (DocumentField field : docType.getFields(restrictToProject)) {
           if (field.isSummary()) {
             if (field.isMultiText()) {
               if ((values = documentJson.optJSONArray(field.getName())) != null) {

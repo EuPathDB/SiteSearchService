@@ -3,10 +3,8 @@ package org.gusdb.sitesearch.service.request;
 import static java.util.Arrays.asList;
 import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.json.JSONObject;
@@ -99,9 +97,11 @@ public class SearchRequest {
    * @return translated search term string that behaves better
    */
   private String translateSearchText(String rawSearchText) {
+    return rawSearchText;
+    /* TODO: may not need this any more, delete when we're sure
     return Arrays.stream(rawSearchText.split("\\s"))
         .map(token -> token.indexOf("*") == -1 ? "\"" + token + "\"" : token)
-        .collect(Collectors.joining(" "));
+        .collect(Collectors.joining(" ")); */
   }
 
   public String getSearchText() {
