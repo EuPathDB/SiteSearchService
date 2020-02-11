@@ -91,6 +91,7 @@ public class SolrCalls {
         "&facet.field=" + DOCUMENT_TYPE_FIELD +            // declare document-type as facet field
         "&facet.field=" + ORGANISM_FIELD +                 // declare organism as facet field
         "&defType=edismax" +                               // chosen query parser
+        "&sort=" + urlEncodeUtf8("score desc, id asc") +   // sort by score
         (forOrganismFacets ? "" : "&hl=true") +            // turn on highlighting
         (forOrganismFacets ? "" : "&hl.fl=*") +            // highlight matches on all fields
         (forOrganismFacets ? "" : "&hl.method=unified") +  // chosen highlighting method
