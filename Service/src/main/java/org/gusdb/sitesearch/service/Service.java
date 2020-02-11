@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.Optional;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -35,9 +36,9 @@ public class Service {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(
-      @QueryParam("searchText") String searchText,
-      @QueryParam("offset") int offset,
-      @QueryParam("numRecords") int numRecords,
+      @QueryParam("searchText") @DefaultValue("*") String searchText,
+      @QueryParam("offset") @DefaultValue("0") int offset,
+      @QueryParam("numRecords") @DefaultValue("20") int numRecords,
       @QueryParam("projectId") String projectId,
       @QueryParam("docType") String docType) {
     return handleSearchRequest(getSolr(), new SearchRequest(searchText,
