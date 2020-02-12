@@ -32,6 +32,7 @@ public class SolrCalls {
   public static final String PRIMARY_KEY_FIELD = "primaryKey";
   public static final String SCORE_FIELD = "score";
   public static final String WDK_PRIMARY_KEY_FIELD = "wdkPrimaryKeyString";
+  public static final String HYPERLINK_NAME_FIELD = "hyperlinkName";
   public static final String JSON_BLOB_FIELD = "json-blob";
 
   // hard-coded doc types

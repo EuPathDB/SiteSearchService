@@ -44,6 +44,7 @@ public class ResultsFormatter {
           .put("organism", documentJson.optString(SolrCalls.ORGANISM_FIELD, null))
           .put("score", documentJson.getDouble(SolrCalls.SCORE_FIELD))
           .put("wdkPrimaryKeyString", documentJson.optString(SolrCalls.WDK_PRIMARY_KEY_FIELD, null))
+          .put("hyperlinkName", documentJson.optString(SolrCalls.HYPERLINK_NAME_FIELD, null))
           .put("foundInFields", highlighting.get(documentJson.getString(SolrCalls.ID_FIELD)));
         JSONObject summaryFields = new JSONObject();
         String value;
