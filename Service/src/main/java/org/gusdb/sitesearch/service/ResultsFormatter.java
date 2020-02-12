@@ -31,18 +31,19 @@ public class ResultsFormatter {
   private static JSONArray getDocumentsJson(Metadata meta, List<JSONObject> documents, Highlighting highlighting, Optional<String> restrictToProject) {
     return new JSONArray(documents.stream()
       // filter out batch-meta documents
-      .filter(documentJson -> !("batch-meta".equals(documentJson.getString(SolrCalls.DOCUMENT_TYPE_FIELD))))
+      .filter(documentJson -> !(SolrCalls.BATCH_META_DOCTYPE.equals(documentJson.getString(SolrCalls.DOCUMENT_TYPE_FIELD))))
       // format raw document JSON to summary JSON
       .map(documentJson -> {
         //LOG.debug("Processing document: " + documentJson.toString(2));
         DocumentType docType = meta.getDocumentType(documentJson.getString(SolrCalls.DOCUMENT_TYPE_FIELD))
           .orElseThrow(() -> new SiteSearchRuntimeException("Unknown document type returned in document: " + documentJson.toString(2))); 
-        JSONArray primaryKey = documentJson.getJSONArray("primaryKey");
+        JSONArray primaryKey = documentJson.getJSONArray(SolrCalls.PRIMARY_KEY_FIELD);
         JSONObject json = new JSONObject()
           .put("documentType", docType.getId())
           .put("primaryKey", primaryKey)
           .put("organism", documentJson.optString(SolrCalls.ORGANISM_FIELD, null))
-          .put("wdkPrimaryKeyString", documentJson.optString("wdkPrimaryKeyString", null))
+          .put("score", documentJson.getDouble(SolrCalls.SCORE_FIELD))
+          .put("wdkPrimaryKeyString", documentJson.optString(SolrCalls.WDK_PRIMARY_KEY_FIELD, null))
           .put("foundInFields", highlighting.get(documentJson.getString(SolrCalls.ID_FIELD)));
         JSONObject summaryFields = new JSONObject();
         String value;

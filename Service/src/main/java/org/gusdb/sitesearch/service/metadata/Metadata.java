@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.gusdb.fgputil.MapBuilder;
 import org.gusdb.fgputil.Tuples.TwoTuple;
 import org.gusdb.fgputil.solr.SolrResponse;
+import org.gusdb.sitesearch.service.SolrCalls;
 import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.request.DocTypeFilter;
 import org.json.JSONArray;
@@ -124,8 +125,8 @@ public class Metadata {
   private Map<String,Integer> _organismFacetCounts;
 
   public Metadata(SolrResponse result) {
-    JSONObject document = getSingular(result.getDocuments(), "document-categories");
-    _categories = arrayStream(document.getJSONArray("json-blob"))
+    JSONObject document = getSingular(result.getDocuments(), SolrCalls.CATEGORIES_META_DOCTYPE);
+    _categories = arrayStream(document.getJSONArray(SolrCalls.JSON_BLOB_FIELD))
       .map(jsonType -> jsonType.getJSONObject())
       .map(catObj -> new Category(catObj.getString("name"))
         .addDocumentTypes(arrayStream(catObj.getJSONArray("documentTypes"))
@@ -153,11 +154,11 @@ public class Metadata {
   }
 
   public Metadata addFieldData(SolrResponse result) {
-    JSONObject document = getSingular(result.getDocuments(), "document-fields");
+    JSONObject document = getSingular(result.getDocuments(), SolrCalls.FIELDS_META_DOCTYPE);
 
     // put fields data in a map for easy access
     Map<String,List<DocumentField>> fieldMap = getMapFromList(
-      arrayIterable(document.getJSONArray("json-blob")), val -> {
+      arrayIterable(document.getJSONArray(SolrCalls.JSON_BLOB_FIELD)), val -> {
         JSONObject obj = val.getJSONObject();
         return new TwoTuple<String,List<DocumentField>>(
           obj.getString(DOCUMENT_TYPE_FIELD),
