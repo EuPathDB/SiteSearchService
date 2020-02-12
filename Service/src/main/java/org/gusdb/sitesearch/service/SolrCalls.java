@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -87,35 +88,54 @@ public class SolrCalls {
    * Highlighting will also be turned off since it is not needed.
    * @return SOLR search response
    */
-  public static SolrResponse getSearchResponse(Solr solr, SearchRequest request, Metadata meta, boolean forOrganismFacets) {
+  public static SolrResponse getSearchResponse(Solr solr, SearchRequest request, Metadata meta,
+      boolean omitResults, boolean applyOrganismFilter, FieldsMode fieldsMode) {
+
     // don't need any documents in result if only collecting organism facets
-    Pagination pagination = forOrganismFacets ? new Pagination(0,0) :
+    Pagination pagination = omitResults ? new Pagination(0,0) :
       request.getPagination().get(); // should always be present for this call; bug if not
-    // selecting search fields will apply fields filter if present
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter(), request.getRestrictToProject()));
-    String searchFiltersParam = buildQueryFilterParams(request, !forOrganismFacets);
+
+    // select search fields that will be applied to this search
+    List<DocumentField> searchFields = meta.getSearchFields(
+        request.getDocTypeFilter().map(filter -> filter.getDocType()),
+        (fieldsMode.applyFieldsFilter() &&
+         request.getDocTypeFilter().isPresent()) ?
+            request.getDocTypeFilter().get().getFoundOnlyInFields() :
+            Optional.empty(),
+        request.getRestrictToProject());
+
+    String searchFiltersParam = buildQueryFilterParams(request, applyOrganismFilter);
+    String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldsMode);
+    
     String filteredDocsRequest =
-        "/select" +                                        // perform a search
-        "?q=" + urlEncodeUtf8(request.getSearchText()) +   // search text
-        "&qf=" + urlEncodeUtf8(searchFields) +             // fields to search
-        "&start=" + pagination.getOffset() +               // first row to return
-        "&rows=" + pagination.getNumRecords() +            // number of documents to return
-        "&facet=true" +                                    // use facets
-        "&facet.field=" + DOCUMENT_TYPE_FIELD +            // declare document-type as facet field
-        "&facet.field=" + ORGANISM_FIELD +                 // declare organism as facet field
-        "&defType=edismax" +                               // chosen query parser
-        "&fl=" + urlEncodeUtf8("* " + SCORE_FIELD) +       // fields to return
-        "&sort=" + urlEncodeUtf8(SORTING_FIELDS) +         // how to sort results
-        (forOrganismFacets ? "" : "&hl=true") +            // turn on highlighting
-        (forOrganismFacets ? "" : "&hl.fl=*") +            // highlight matches on all fields
-        (forOrganismFacets ? "" : "&hl.method=unified") +  // chosen highlighting method
-        searchFiltersParam;                                // filters to apply to search
+        "/select" +                                                    // perform a search
+        "?q=" + urlEncodeUtf8(request.getSearchText()) +               // search text
+        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(searchFields)) + // fields to search
+        "&start=" + pagination.getOffset() +                           // first row to return
+        "&rows=" + pagination.getNumRecords() +                        // number of documents to return
+        "&facet=true" +                                                // use facets
+        "&facet.field=" + DOCUMENT_TYPE_FIELD +                        // declare document-type as facet field
+        "&facet.field=" + ORGANISM_FIELD +                             // declare organism as facet field
+        fieldQueryFacets +                                             // special field facets
+        "&defType=edismax" +                                           // chosen query parser
+        "&fl=" + urlEncodeUtf8("* " + SCORE_FIELD) +                   // fields to return
+        "&sort=" + urlEncodeUtf8(SORTING_FIELDS) +                     // how to sort results
+        (omitResults ? "" : "&hl=true") +                              // turn on highlighting
+        (omitResults ? "" : "&hl.fl=*") +                              // highlight matches on all fields
+        (omitResults ? "" : "&hl.method=unified") +                    // chosen highlighting method
+        searchFiltersParam;                                            // filters to apply to search
     return solr.executeQuery(filteredDocsRequest, true, resp -> {
       return Solr.parseResponse(filteredDocsRequest, resp);
     });
   }
 
-  private static String buildQueryFilterParams(SearchRequest request, boolean includeOrganismFilter) {
+  private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, FieldsMode fieldsMode) {
+    return !fieldsMode.requestFieldQueryFacets() || searchFields.isEmpty() ? "" : searchFields.stream()
+        .map(field -> "&facet.query=" + urlEncodeUtf8(field.getName() + ":" + searchText))
+        .collect(Collectors.joining());
+  }
+
+  private static String buildQueryFilterParams(SearchRequest request, boolean applyOrganismFilter) {
     return
       // apply project filter
       // example: -(project:[* TO *] AND -project:(PlasmoDB))
@@ -125,13 +145,13 @@ public class SolrCalls {
 
       // apply docType filter
       // example: document-type:(gene)
-      request.getFilter().map(filter ->
+      request.getDocTypeFilter().map(filter ->
          "&fq=" + urlEncodeUtf8(DOCUMENT_TYPE_FIELD + ":(" + filter.getDocType() + ")")
       ).orElse("") +
 
       // apply organism filter only if asked
       // example: -(organism:[* TO *] AND -organism:("Plasmodium falciparum 3D7" OR "Plasmodium falciparum 7G8"))
-      (!includeOrganismFilter ? "" :
+      (!applyOrganismFilter ? "" :
         request.getRestrictSearchToOrganisms().map(orgs ->
           "&fq=" + urlEncodeUtf8("-(" + ORGANISM_FIELD + ":[* TO *] AND -" + ORGANISM_FIELD + ":(" + getOrgFilterCondition(orgs) + "))")
         ).orElse(""));
@@ -153,7 +173,10 @@ public class SolrCalls {
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
     String nextCursorMark = "*";
     String lastCursorMark = null;
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(request.getFilter(), request.getRestrictToProject()));
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(
+        request.getDocTypeFilter().map(f -> f.getDocType()),
+        request.getDocTypeFilter().flatMap(f -> f.getFoundOnlyInFields()),
+        request.getRestrictToProject()));
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
     String staticPortionOfRequest =
@@ -190,4 +213,23 @@ public class SolrCalls {
     return new HashMap<>();
   }
 
+  public static class FieldsMode {
+
+    public static final FieldsMode NORMAL = new FieldsMode(false);
+    public static final FieldsMode FOR_FACETS = new FieldsMode(true);
+
+    private final boolean _isForFieldsFacets;
+
+    private FieldsMode(boolean isForFieldsFacets) {
+      _isForFieldsFacets = isForFieldsFacets;
+    }
+
+    public boolean applyFieldsFilter() {
+      return !_isForFieldsFacets;
+    }
+
+    public boolean requestFieldQueryFacets() {
+      return _isForFieldsFacets;
+    }
+  }
 }

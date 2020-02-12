@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
 import org.gusdb.fgputil.MapBuilder;
 import org.gusdb.fgputil.Tuples.TwoTuple;
+import org.gusdb.fgputil.solr.Solr.FacetQueryResults;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.sitesearch.service.SolrCalls;
 import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
@@ -123,6 +124,7 @@ public class Metadata {
   private final List<Category> _categories;
   private final Map<String,DocumentType> _docTypes;
   private Map<String,Integer> _organismFacetCounts;
+  private Map<String,Integer> _fieldFacetCounts;
 
   public Metadata(SolrResponse result) {
     JSONObject document = getSingular(result.getDocuments(), SolrCalls.CATEGORIES_META_DOCTYPE);
@@ -221,22 +223,25 @@ public class Metadata {
     return json;
   }
 
-  public List<DocumentField> getSearchFields(Optional<DocTypeFilter> filter, Optional<String> projectFilter) {
+  public List<DocumentField> getSearchFields(
+      Optional<String> docTypeFilter,
+      Optional<List<String>> fieldsFilter,
+      Optional<String> projectFilter) {
     List<DocumentField> fields = new ArrayList<>();
     for (DocumentType type : _docTypes.values()) {
       // if no docType filter, then add all fields for all types
-      if (filter.isEmpty()) {
+      if (docTypeFilter.isEmpty()) {
         fields.addAll(type.getFields(projectFilter));
       }
       // if docType filter present, add fields for only requested docType
-      else if (filter.get().getDocType().equals(type.getId())) {
+      else if (docTypeFilter.get().equals(type.getId())) {
         // if no fields filter present, add all fields for this docType
-        if (filter.get().getFoundOnlyInFields().isEmpty()) {
+        if (fieldsFilter.isEmpty()) {
           fields.addAll(type.getFields(projectFilter));
         }
         // if fields filter present, only add fields for this docType which are also in the requested list
         else {
-          List<String> requestedSearchFields = filter.get().getFoundOnlyInFields().get();
+          List<String> requestedSearchFields = fieldsFilter.get();
           for (DocumentField field : type.getFields(projectFilter)) {
             if (requestedSearchFields.contains(field.getName())) {
               fields.add(field);
@@ -271,6 +276,19 @@ public class Metadata {
 
   public Map<String, Integer> getOrganismFacetCounts() {
     return _organismFacetCounts;
+  }
+
+  public void setFieldFacetCounts(Optional<DocTypeFilter> docTypeFilter, FacetQueryResults facetCounts) {
+    _fieldFacetCounts = new HashMap<>();
+    if (docTypeFilter.isEmpty()) return;
+    for (String queryString : facetCounts.keySet()) {
+      String fieldName = queryString.substring(0, queryString.indexOf(":"));
+      _fieldFacetCounts.put(fieldName, facetCounts.get(queryString));
+    }
+  }
+
+  public Map<String,Integer> getFieldCounts() {
+    return _fieldFacetCounts;
   }
 
 }

@@ -23,6 +23,7 @@ public class ResultsFormatter {
       .put("categories", meta.getCategoriesJson())
       .put("documentTypes", meta.getDocumentTypesJson(restrictToProject))
       .put("organismCounts", meta.getOrganismFacetCounts())
+      .put("fieldCounts", meta.getFieldCounts())
       .put("searchResults", new JSONObject()
         .put("totalCount", searchResults.getTotalCount())
         .put("documents", getDocumentsJson(meta, searchResults.getDocuments(), searchResults.getHighlighting(), restrictToProject)));

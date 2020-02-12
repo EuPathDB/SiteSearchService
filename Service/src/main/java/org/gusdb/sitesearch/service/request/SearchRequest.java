@@ -124,12 +124,21 @@ public class SearchRequest {
     return Optional.ofNullable(_restrictSearchToOrganisms);
   }
 
-  public Optional<DocTypeFilter> getFilter() {
+  public Optional<DocTypeFilter> getDocTypeFilter() {
     return Optional.ofNullable(_filter);
   }
 
   public boolean hasOrganismFilter() {
     return getRestrictSearchToOrganisms().isPresent();
+  }
+
+  public boolean hasDocTypeFilter() {
+    return getDocTypeFilter().isPresent();
+  }
+
+  public boolean hasDocTypeFilterAndFields() {
+    return getDocTypeFilter().isPresent() &&
+        getDocTypeFilter().get().getFoundOnlyInFields().isPresent();
   }
 
 }

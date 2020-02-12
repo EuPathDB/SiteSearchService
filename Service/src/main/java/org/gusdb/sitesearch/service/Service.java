@@ -21,6 +21,7 @@ import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.solr.Solr;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.fgputil.web.MimeTypes;
+import org.gusdb.sitesearch.service.SolrCalls.FieldsMode;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
 import org.gusdb.sitesearch.service.server.Context;
@@ -92,17 +93,36 @@ public class Service {
     // initialize metadata (2 SOLR calls for docTypes and fields)
     Metadata meta = SolrCalls.initializeMetadata(solr);
 
+    // if there's a doc type filter but not fields, then worth it to get field
+    //   facets in the first request; if no filter, then we should not request
+    //   field facets; if filter but no fields, then get facets to avoid the
+    //   second call below
+    FieldsMode fieldsMode =
+        (request.hasDocTypeFilter()
+         && !request.hasDocTypeFilterAndFields())
+        ? FieldsMode.FOR_FACETS
+        : FieldsMode.NORMAL;
+
     // get response with all filters in request applied
-    SolrResponse searchResults = SolrCalls.getSearchResponse(solr, request, meta, false);
+    SolrResponse searchResults = SolrCalls.getSearchResponse(solr, request, meta, false, true, fieldsMode);
 
     // apply facets
     meta.applyDocTypeFacetCounts(searchResults.getFacetCounts());
     meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), searchResults.getFacetCounts());
+    if (request.hasDocTypeFilter()) {
+      meta.setFieldFacetCounts(request.getDocTypeFilter(), searchResults.getFacetQueryResults());
+    }
 
     if (request.hasOrganismFilter()) {
-      // need a second call; one without organism filter applied to get org facets
-      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true);
+      // need another call; one without organism filter applied to get org facets
+      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, false, FieldsMode.NORMAL);
       meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
+    }
+
+    if (request.hasDocTypeFilterAndFields()) {
+      // need another call; one without fields filtering applied to get field facets
+      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, true, FieldsMode.FOR_FACETS);
+      meta.setFieldFacetCounts(request.getDocTypeFilter(), facetResponse.getFacetQueryResults());
     }
 
     return Response.ok(ResultsFormatter.formatResults(meta, searchResults, request.getRestrictToProject()).toString(2)).build();
