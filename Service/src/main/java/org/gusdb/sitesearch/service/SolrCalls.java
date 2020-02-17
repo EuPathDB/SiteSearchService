@@ -131,7 +131,7 @@ public class SolrCalls {
 
   private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, FieldsMode fieldsMode) {
     return !fieldsMode.requestFieldQueryFacets() || searchFields.isEmpty() ? "" : searchFields.stream()
-        .map(field -> "&facet.query=" + urlEncodeUtf8(field.getName() + ":" + searchText))
+        .map(field -> "&facet.query=" + urlEncodeUtf8(field.getName() + ":(" + searchText + ")"))
         .collect(Collectors.joining());
   }
 
