@@ -6,6 +6,7 @@ import static org.gusdb.fgputil.json.JsonUtil.toStringArray;
 import java.util.List;
 import java.util.Optional;
 
+import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.json.JSONObject;
 
@@ -89,19 +90,15 @@ public class SearchRequest {
   }
 
   /**
-   * Hack to prevent false positives based on the way we are configuring SOLR.
-   * Will split on whitespace, then wrap each token with double-quotes, then
-   * rejoin them with a space delimiter.
+   * Performs any transformation required on the search text.  At minimum, this
+   * includes escaping special chars.  May also include other transforms as
+   * requirements change.
    *
    * @param rawSearchText input string from the user
-   * @return translated search term string that behaves better
+   * @return search term we will send to SOLR in GET request
    */
   private String translateSearchText(String rawSearchText) {
-    return rawSearchText;
-    /* TODO: may not need this any more, delete when we're sure
-    return Arrays.stream(rawSearchText.split("\\s"))
-        .map(token -> token.indexOf("*") == -1 ? "\"" + token + "\"" : token)
-        .collect(Collectors.joining(" ")); */
+    return FormatUtil.escapeChars(rawSearchText, "+-&|!(){}[]^\"~?:\\/".toCharArray());
   }
 
   public String getSearchText() {
