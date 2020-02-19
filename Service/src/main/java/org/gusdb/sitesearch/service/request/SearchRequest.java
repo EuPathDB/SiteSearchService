@@ -98,7 +98,7 @@ public class SearchRequest {
    * @return search term we will send to SOLR in GET request
    */
   private String translateSearchText(String rawSearchText) {
-    return FormatUtil.escapeChars(rawSearchText, "+-&|!(){}[]^\"~?:\\/".toCharArray());
+    return FormatUtil.escapeChars(rawSearchText, "+-&|!(){}[]^~?:\\/".toCharArray());
   }
 
   public String getSearchText() {
