@@ -5,7 +5,10 @@ import static org.gusdb.fgputil.functional.Functions.getMapFromValues;
 import static org.gusdb.fgputil.functional.Functions.reduce;
 import static org.gusdb.fgputil.json.JsonIterators.arrayIterable;
 import static org.gusdb.fgputil.json.JsonIterators.arrayStream;
+import static org.gusdb.sitesearch.service.SolrCalls.CATEGORIES_META_DOCTYPE;
 import static org.gusdb.sitesearch.service.SolrCalls.DOCUMENT_TYPE_FIELD;
+import static org.gusdb.sitesearch.service.SolrCalls.FIELDS_META_DOCTYPE;
+import static org.gusdb.sitesearch.service.SolrCalls.JSON_BLOB_FIELD;
 import static org.gusdb.sitesearch.service.SolrCalls.ORGANISM_FIELD;
 
 import java.util.ArrayList;
@@ -17,13 +20,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
+import org.gusdb.fgputil.FormatUtil;
 import org.gusdb.fgputil.MapBuilder;
 import org.gusdb.fgputil.Tuples.TwoTuple;
 import org.gusdb.fgputil.solr.Solr.FacetQueryResults;
 import org.gusdb.fgputil.solr.SolrResponse;
-import org.gusdb.sitesearch.service.SolrCalls;
+import org.gusdb.sitesearch.service.exception.InvalidRequestException;
 import org.gusdb.sitesearch.service.exception.SiteSearchRuntimeException;
 import org.gusdb.sitesearch.service.request.DocTypeFilter;
+import org.gusdb.sitesearch.service.request.SearchRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -127,8 +132,8 @@ public class Metadata {
   private Map<String,Integer> _fieldFacetCounts;
 
   public Metadata(SolrResponse result) {
-    JSONObject document = getSingular(result.getDocuments(), SolrCalls.CATEGORIES_META_DOCTYPE);
-    _categories = arrayStream(document.getJSONArray(SolrCalls.JSON_BLOB_FIELD))
+    JSONObject document = getSingular(result.getDocuments(), CATEGORIES_META_DOCTYPE);
+    _categories = arrayStream(document.getJSONArray(JSON_BLOB_FIELD))
       .map(jsonType -> jsonType.getJSONObject())
       .map(catObj -> new Category(catObj.getString("name"))
         .addDocumentTypes(arrayStream(catObj.getJSONArray("documentTypes"))
@@ -156,11 +161,11 @@ public class Metadata {
   }
 
   public Metadata addFieldData(SolrResponse result) {
-    JSONObject document = getSingular(result.getDocuments(), SolrCalls.FIELDS_META_DOCTYPE);
+    JSONObject document = getSingular(result.getDocuments(), FIELDS_META_DOCTYPE);
 
     // put fields data in a map for easy access
     Map<String,List<DocumentField>> fieldMap = getMapFromList(
-      arrayIterable(document.getJSONArray(SolrCalls.JSON_BLOB_FIELD)), val -> {
+      arrayIterable(document.getJSONArray(JSON_BLOB_FIELD)), val -> {
         JSONObject obj = val.getJSONObject();
         return new TwoTuple<String,List<DocumentField>>(
           obj.getString(DOCUMENT_TYPE_FIELD),
@@ -223,26 +228,32 @@ public class Metadata {
     return json;
   }
 
-  public List<DocumentField> getSearchFields(
-      Optional<String> docTypeFilter,
-      Optional<List<String>> fieldsFilter,
-      Optional<String> projectFilter) {
+  public List<DocumentField> getSearchFields(SearchRequest request, boolean applyFieldsFilter) {
+
+    // gather filtering options
+    Optional<String> docTypeFilter = request.getDocTypeFilter().map(filter -> filter.getDocType());
+    Optional<List<String>> fieldsFilter =
+      applyFieldsFilter && docTypeFilter.isPresent() ?
+        request.getDocTypeFilter().get().getFoundOnlyInFields() : Optional.empty();
+    Optional<String> projectFilter = request.getRestrictToProject();
+
+    // build out list of fields
     List<DocumentField> fields = new ArrayList<>();
     for (DocumentType type : _docTypes.values()) {
       // if no docType filter, then add all fields for all types
       if (docTypeFilter.isEmpty()) {
-        fields.addAll(type.getFields(projectFilter));
+        fields.addAll(type.getSearchFields(projectFilter));
       }
       // if docType filter present, add fields for only requested docType
       else if (docTypeFilter.get().equals(type.getId())) {
         // if no fields filter present, add all fields for this docType
         if (fieldsFilter.isEmpty()) {
-          fields.addAll(type.getFields(projectFilter));
+          fields.addAll(type.getSearchFields(projectFilter));
         }
         // if fields filter present, only add fields for this docType which are also in the requested list
         else {
           List<String> requestedSearchFields = fieldsFilter.get();
-          for (DocumentField field : type.getFields(projectFilter)) {
+          for (DocumentField field : type.getSearchFields(projectFilter)) {
             if (requestedSearchFields.contains(field.getName())) {
               fields.add(field);
             }
@@ -289,6 +300,35 @@ public class Metadata {
 
   public Map<String,Integer> getFieldCounts() {
     return _fieldFacetCounts;
+  }
+
+  public void validateRequest(SearchRequest request) {
+
+    // validate document type in docType filter if present
+    if (request.getDocTypeFilter().isEmpty()) return;
+    DocTypeFilter filter = request.getDocTypeFilter().get();
+    String docType = filter.getDocType();
+    if (!_docTypes.containsKey(docType)) {
+      throw new InvalidRequestException("Document type filtered '" + docType +
+          "' is not valid.  Must be one of: " + FormatUtil.join(_docTypes.keySet(), ", "));
+    }
+
+    // validate fields in field filter if present
+    if (filter.getFoundOnlyInFields().isEmpty()) return;
+    List<String> requestedFieldNames = filter.getFoundOnlyInFields().get();
+    List<String> validFieldNames = _docTypes.get(docType)
+        .getSearchFields(request.getRestrictToProject())
+        .stream().map(DocumentField::getName)
+        .collect(Collectors.toList());
+    List<String> invalidNames = new ArrayList<>();
+    for (String filterField : requestedFieldNames) {
+      if (!validFieldNames.contains(filterField)) {
+        invalidNames.add(filterField);
+      }
+    }
+    if (!invalidNames.isEmpty()) {
+      throw new InvalidRequestException("Invalid field names in filter: " + FormatUtil.join(invalidNames, ", "));
+    }
   }
 
 }

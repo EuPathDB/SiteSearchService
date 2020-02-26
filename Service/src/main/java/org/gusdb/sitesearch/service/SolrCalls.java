@@ -11,7 +11,6 @@ import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -96,13 +95,7 @@ public class SolrCalls {
       request.getPagination().get(); // should always be present for this call; bug if not
 
     // select search fields that will be applied to this search
-    List<DocumentField> searchFields = meta.getSearchFields(
-        request.getDocTypeFilter().map(filter -> filter.getDocType()),
-        (fieldsMode.applyFieldsFilter() &&
-         request.getDocTypeFilter().isPresent()) ?
-            request.getDocTypeFilter().get().getFoundOnlyInFields() :
-            Optional.empty(),
-        request.getRestrictToProject());
+    List<DocumentField> searchFields = meta.getSearchFields(request, fieldsMode.applyFieldsFilter());
 
     String searchFiltersParam = buildQueryFilterParams(request, applyOrganismFilter);
     String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldsMode);
@@ -173,10 +166,7 @@ public class SolrCalls {
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
     String nextCursorMark = "*";
     String lastCursorMark = null;
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(
-        request.getDocTypeFilter().map(f -> f.getDocType()),
-        request.getDocTypeFilter().flatMap(f -> f.getFoundOnlyInFields()),
-        request.getRestrictToProject()));
+    String searchFields = formatFieldsForRequest(meta.getSearchFields(request, true));
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
     String staticPortionOfRequest =

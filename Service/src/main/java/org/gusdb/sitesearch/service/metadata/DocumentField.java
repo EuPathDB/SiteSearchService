@@ -15,6 +15,7 @@ public class DocumentField {
   private final String _displayName;
   private final boolean _isMultiText;
   private final boolean _isSummary;
+  private final boolean _isSearchable;
   private final boolean _isSubtitle;
   private final double _boost;
   private final Optional<List<String>> _includeProjects;
@@ -26,6 +27,7 @@ public class DocumentField {
     _displayName = fieldJson.optString("displayName", getDisplay(_term));
     _isMultiText = _name.indexOf("MULTITEXT") > 0;
     _isSummary = fieldJson.optBoolean("isSummary", true);
+    _isSearchable = fieldJson.optBoolean("isSearchable", true);
     _isSubtitle = fieldJson.optBoolean("isSubtitle", false);
     _boost = fieldJson.optDouble("boost", 1);
     _includeProjects = Optional
@@ -62,6 +64,10 @@ public class DocumentField {
 
   public boolean isSummary() {
     return _isSummary;
+  }
+
+  public boolean isSearchable() {
+    return _isSearchable;
   }
 
   public boolean isSubtitle() {

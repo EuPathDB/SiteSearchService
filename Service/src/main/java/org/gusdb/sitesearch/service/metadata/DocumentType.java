@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -69,21 +70,30 @@ public class DocumentType {
     return _wdkSearchUrlName;
   }
 
-  public List<DocumentField> getFields(Optional<String> projectId) {
+  public List<DocumentField>  getSummaryFields(Optional<String> projectId) {
+    return getFields(projectId, DocumentField::isSummary);
+  }
+
+  public List<DocumentField>  getSearchFields(Optional<String> projectId) {
+    return getFields(projectId, DocumentField::isSearchable);
+  }
+
+  private List<DocumentField> getFields(Optional<String> projectId, Predicate<DocumentField> pred) {
     return _fields.stream()
       .filter(field -> projectId.isEmpty() || field.includeInProject(projectId.get()))
+      .filter(pred)
       .collect(Collectors.toList());
   }
 
-  public JSONObject toJson(Optional<String> projectId) {
-    JSONArray summaryFields = new JSONArray();
-    JSONArray searchFields = new JSONArray();
-    for (DocumentField field : getFields(projectId)) {
-      searchFields.put(field.toJson());
-      if (field.isSummary()) {
-        summaryFields.put(field.toJson());
-      }
+  private static JSONArray toJson(List<DocumentField> fields) {
+    JSONArray array = new JSONArray();
+    for (DocumentField field : fields) {
+      array.put(field.toJson());
     }
+    return array;
+  }
+
+  public JSONObject toJson(Optional<String> projectId) {
     return new JSONObject()
       .put("id", _id)
       .put("displayName", _displayName)
@@ -91,12 +101,12 @@ public class DocumentType {
       .put("hasOrganismField", _hasOrganismField)
       .put("count", _count.orElse(0))
       .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
-      .put("summaryFields", summaryFields)
+      .put("summaryFields", toJson(getSummaryFields(projectId)))
       .put("wdkRecordTypeData", _wdkSearchUrlName
         .map(searchName ->
           new JSONObject()
             .put("searchName", searchName)
-            .put("searchFields", searchFields))
+            .put("searchFields", toJson(getSearchFields(projectId))))
         .orElse(null));
   }
 

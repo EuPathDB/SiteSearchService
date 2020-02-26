@@ -50,23 +50,21 @@ public class ResultsFormatter {
         JSONObject summaryFields = new JSONObject();
         String value;
         JSONArray values;
-        for (DocumentField field : docType.getFields(restrictToProject)) {
-          if (field.isSummary()) {
-            if (field.isMultiText()) {
-              if ((values = documentJson.optJSONArray(field.getName())) != null) {
-                summaryFields.put(field.getName(), values);
-              }
-              else {
-                LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain multi-text summary field '" + field.getName());
-              }
+        for (DocumentField field : docType.getSummaryFields(restrictToProject)) {
+          if (field.isMultiText()) {
+            if ((values = documentJson.optJSONArray(field.getName())) != null) {
+              summaryFields.put(field.getName(), values);
             }
             else {
-              if ((value = documentJson.optString(field.getName(), null)) != null) {
-                summaryFields.put(field.getName(), value);
-              }
-              else {
-                LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain summary field '" + field.getName());
-              }
+              LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain multi-text summary field '" + field.getName());
+            }
+          }
+          else {
+            if ((value = documentJson.optString(field.getName(), null)) != null) {
+              summaryFields.put(field.getName(), value);
+            }
+            else {
+              LOG.warn("Document of type '" + docType.getId() + "' with PK '" + primaryKey + "' does not contain summary field '" + field.getName());
             }
           }
         }

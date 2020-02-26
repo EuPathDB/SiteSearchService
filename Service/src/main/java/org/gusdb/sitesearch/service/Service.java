@@ -92,6 +92,7 @@ public class Service {
 
     // initialize metadata (2 SOLR calls for docTypes and fields)
     Metadata meta = SolrCalls.initializeMetadata(solr);
+    meta.validateRequest(request);
 
     // if there's a doc type filter but not fields, then worth it to get field
     //   facets in the first request; if no filter, then we should not request
@@ -140,6 +141,7 @@ public class Service {
 
     // initialize metadata (2 SOLR calls for docTypes and fields)
     Metadata meta = SolrCalls.initializeMetadata(solr);
+    meta.validateRequest(request);
 
     return Response.ok(new StreamingOutput() {
       @Override
