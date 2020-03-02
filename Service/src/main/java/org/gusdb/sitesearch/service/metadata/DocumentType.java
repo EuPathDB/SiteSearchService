@@ -100,14 +100,10 @@ public class DocumentType {
       .put("displayNamePlural", _displayNamePlural)
       .put("hasOrganismField", _hasOrganismField)
       .put("count", _count.orElse(0))
-      .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
       .put("summaryFields", toJson(getSummaryFields(projectId)))
-      .put("wdkRecordTypeData", _wdkSearchUrlName
-        .map(searchName ->
-          new JSONObject()
-            .put("searchName", searchName)
-            .put("searchFields", toJson(getSearchFields(projectId))))
-        .orElse(null));
+      .put("searchFields", toJson(getSearchFields(projectId)))
+      .put("isWdkRecordType", _wdkSearchUrlName.isPresent())
+      .put("wdkSearchName", _wdkSearchUrlName.orElse(null));
   }
 
   public void setCount(int count) {
