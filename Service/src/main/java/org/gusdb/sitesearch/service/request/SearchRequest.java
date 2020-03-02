@@ -33,6 +33,7 @@ public class SearchRequest {
   private final String _restrictToProject;
   private final List<String> _restrictMetadataToOrganisms;
   private final List<String> _restrictSearchToOrganisms;
+  private final boolean _orgFilterPresent;
   private final DocTypeFilter _filter;
 
   public SearchRequest(JSONObject requestJson, boolean expectAndRequirePagination, boolean requireDocTypeFilter, boolean disallowFieldFilters) {
@@ -51,7 +52,11 @@ public class SearchRequest {
     _restrictToProject = requestJson.optString("restrictToProject", null);
     _restrictMetadataToOrganisms = getArrayValues(requestJson, "restrictMetadataToOrganisms");
     _restrictSearchToOrganisms = getArrayValues(requestJson, "restrictSearchToOrganisms");
-    ensureSubset(_restrictSearchToOrganisms, _restrictMetadataToOrganisms);
+    if (!isSubset(_restrictSearchToOrganisms, _restrictMetadataToOrganisms)) {
+      throw new InvalidRequestException("All organisms in search must exist in organism metadata list");
+    }
+    // already know search orgs is subset of meta orgs; org filter present if reverse is also true (i.e. sets are the same)
+    _orgFilterPresent = isSubset(_restrictMetadataToOrganisms, _restrictSearchToOrganisms);
     _filter = !requestJson.has("documentTypeFilter") ? null :
       new DocTypeFilter(requestJson.getJSONObject("documentTypeFilter"));
     if (_filter == null && requireDocTypeFilter) {
@@ -62,15 +67,16 @@ public class SearchRequest {
     }
   }
 
-  private static void ensureSubset(
-      List<String> restrictSearchToOrganisms,
-      List<String> restrictMetadataToOrganisms) {
-    if (restrictSearchToOrganisms == null || restrictMetadataToOrganisms == null) return;
-    for (String org : restrictSearchToOrganisms) {
-      if (!restrictMetadataToOrganisms.contains(org)) {
-        throw new InvalidRequestException("All organisms in search must exist in organism metadata list");
+  private static boolean isSubset(
+      List<String> subset,
+      List<String> superset) {
+    if (subset == null || superset == null) return true;
+    for (String value : subset) {
+      if (!superset.contains(value)) {
+        return false;
       }
     }
+    return true;
   }
 
   public static List<String> getArrayValues(JSONObject requestJson, String key) {
@@ -87,6 +93,7 @@ public class SearchRequest {
     _filter = docTypeFilter.map(docType -> new DocTypeFilter(new JSONObject().put("documentType", docType))).orElse(null);
     _restrictMetadataToOrganisms = null;
     _restrictSearchToOrganisms = null;
+    _orgFilterPresent = false;
   }
 
   /**
@@ -126,7 +133,7 @@ public class SearchRequest {
   }
 
   public boolean hasOrganismFilter() {
-    return getRestrictSearchToOrganisms().isPresent();
+    return _orgFilterPresent;
   }
 
   public boolean hasDocTypeFilter() {

@@ -8,9 +8,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -79,26 +77,28 @@ public class SolrCalls {
    * Performs a SOLR search defined by the parameters of the request object and
    * using fields defined by the metadata object
    * 
+   * @param solr configured SOLR querying utility
    * @param request request specified by the service caller
    * @param meta metadata object populated by "static" calls to SOLR
-   * @param forOrganismFacets whether this search is specifically made to fetch
-   * counts of organisms in result.  If so, organism filter will NOT be applied,
-   * and we will request zero documents (an empty page) since it is not needed.
-   * Highlighting will also be turned off since it is not needed.
+   * @param omitResults whether to override pagination and return zero documents
+   *           Highlighting will also be turned off since it is not needed.
+   * @param applyOrganismFilter whether to apply organism filter
+   * @param applyFieldsFilter whether to apply fields filter
+   * @param fieldFacetsRequested whether to include field facet counts in request
    * @return SOLR search response
    */
   public static SolrResponse getSearchResponse(Solr solr, SearchRequest request, Metadata meta,
-      boolean omitResults, boolean applyOrganismFilter, FieldsMode fieldsMode) {
+      boolean omitResults, boolean applyOrganismFilter, boolean applyFieldsFilter, boolean fieldFacetsRequested) {
 
     // don't need any documents in result if only collecting organism facets
     Pagination pagination = omitResults ? new Pagination(0,0) :
       request.getPagination().get(); // should always be present for this call; bug if not
 
     // select search fields that will be applied to this search
-    List<DocumentField> searchFields = meta.getSearchFields(request, fieldsMode.applyFieldsFilter());
+    List<DocumentField> searchFields = meta.getSearchFields(request, applyFieldsFilter);
 
     String searchFiltersParam = buildQueryFilterParams(request, applyOrganismFilter);
-    String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldsMode);
+    String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldFacetsRequested);
     
     String filteredDocsRequest =
         "/select" +                                                    // perform a search
@@ -122,8 +122,8 @@ public class SolrCalls {
     });
   }
 
-  private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, FieldsMode fieldsMode) {
-    return !fieldsMode.requestFieldQueryFacets() || searchFields.isEmpty() ? "" : searchFields.stream()
+  private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, boolean fieldQueryFacetsRequested) {
+    return !fieldQueryFacetsRequested || searchFields.isEmpty() ? "" : searchFields.stream()
         .map(field -> "&facet.query=" + urlEncodeUtf8(field.getName() + ":(" + searchText + ")"))
         .collect(Collectors.joining());
   }
@@ -196,30 +196,4 @@ public class SolrCalls {
     writer.flush();
   }
 
-  @SuppressWarnings("unused")
-  public static Map<String,Integer> getFieldsHighlightingCounts(
-      Solr solr, SearchRequest searchRequest, Metadata meta) {
-    // TODO: implement (once performance testing is done on SOLR)
-    return new HashMap<>();
-  }
-
-  public static class FieldsMode {
-
-    public static final FieldsMode NORMAL = new FieldsMode(false);
-    public static final FieldsMode FOR_FACETS = new FieldsMode(true);
-
-    private final boolean _isForFieldsFacets;
-
-    private FieldsMode(boolean isForFieldsFacets) {
-      _isForFieldsFacets = isForFieldsFacets;
-    }
-
-    public boolean applyFieldsFilter() {
-      return !_isForFieldsFacets;
-    }
-
-    public boolean requestFieldQueryFacets() {
-      return _isForFieldsFacets;
-    }
-  }
 }

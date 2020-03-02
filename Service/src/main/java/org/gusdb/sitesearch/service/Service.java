@@ -21,7 +21,6 @@ import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.solr.Solr;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.fgputil.web.MimeTypes;
-import org.gusdb.sitesearch.service.SolrCalls.FieldsMode;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
 import org.gusdb.sitesearch.service.server.Context;
@@ -51,14 +50,6 @@ public class Service {
   @Produces(MediaType.APPLICATION_JSON)
   public Response runSearch(String body) {
     return handleSearchRequest(getSolr(), new SearchRequest(new JSONObject(body), true, false, false));
-  }
-
-  @POST
-  @Path("/field-counts")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response getFieldCounts(String body) {
-    return handleFieldCountsRequest(getSolr(), new SearchRequest(new JSONObject(body), false, true, true));
   }
 
   @POST
@@ -94,47 +85,35 @@ public class Service {
     Metadata meta = SolrCalls.initializeMetadata(solr);
     meta.validateRequest(request);
 
-    // if there's a doc type filter but not fields, then worth it to get field
-    //   facets in the first request; if no filter, then we should not request
-    //   field facets; if filter but no fields, then get facets to avoid the
-    //   second call below
-    FieldsMode fieldsMode =
-        (request.hasDocTypeFilter()
-         && !request.hasDocTypeFilterAndFields())
-        ? FieldsMode.FOR_FACETS
-        : FieldsMode.NORMAL;
-
-    // get response with all filters in request applied
-    SolrResponse searchResults = SolrCalls.getSearchResponse(solr, request, meta, false, true, fieldsMode);
+    // get response with all filters in request applied (will produce results to deliver)
+    boolean fieldFacetsRequested = request.hasDocTypeFilter();
+    SolrResponse searchResults = SolrCalls.getSearchResponse(solr, request, meta, false, true, true, fieldFacetsRequested);
 
     // apply facets
     meta.applyDocTypeFacetCounts(searchResults.getFacetCounts());
     meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), searchResults.getFacetCounts());
-    if (request.hasDocTypeFilter()) {
+    if (fieldFacetsRequested) {
       meta.setFieldFacetCounts(request.getDocTypeFilter(), searchResults.getFacetQueryResults());
     }
 
+    // At this point:
+    //  - doc type facets are correct because: if doc type filter applied, we only need a count for that type
+    //  - organism facets are wrong if org filter present; recalculate with org filter off
+    //  - field facets are wrong if field filter present; recalculate with field filter off
+    
     if (request.hasOrganismFilter()) {
       // need another call; one without organism filter applied to get org facets
-      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, false, FieldsMode.NORMAL);
+      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, false, true, false);
       meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
     }
 
     if (request.hasDocTypeFilterAndFields()) {
       // need another call; one without fields filtering applied to get field facets
-      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, true, FieldsMode.FOR_FACETS);
+      SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, true, false, true);
       meta.setFieldFacetCounts(request.getDocTypeFilter(), facetResponse.getFacetQueryResults());
     }
 
     return Response.ok(ResultsFormatter.formatResults(meta, searchResults, request.getRestrictToProject()).toString(2)).build();
-  }
-
-  private Response handleFieldCountsRequest(Solr solr, SearchRequest searchRequest) {
-
-    // initialize metadata (2 SOLR calls for docTypes and fields)
-    Metadata meta = SolrCalls.initializeMetadata(solr);
-
-    return Response.ok(new JSONObject(SolrCalls.getFieldsHighlightingCounts(solr, searchRequest, meta))).build();
   }
 
   private static Response handleStreamRequest(Solr solr, SearchRequest request) {
