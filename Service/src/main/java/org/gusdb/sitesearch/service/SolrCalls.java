@@ -39,7 +39,6 @@ public class SolrCalls {
   public static final String BATCH_META_DOCTYPE = "batch-meta";
 
   // tuning constants
-  private static final int PRIMARY_KEY_BOOST_VALUE = 100;
   private static final int FETCH_SIZE_FROM_SOLR = 10000;
 
   // search constants
@@ -157,9 +156,9 @@ public class SolrCalls {
   }
 
   private static String formatFieldsForRequest(List<DocumentField> fields) {
-    return PRIMARY_KEY_FIELD + "^" + PRIMARY_KEY_BOOST_VALUE + (fields.isEmpty() ? "" : fields.stream()
-        .map(field -> " " + field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
-        .collect(Collectors.joining("")));
+    return fields.isEmpty() ? "" : fields.stream()
+        .map(field -> field.getName() + (field.getBoost() == 1 ? "" : ("^" + String.format("%.2f", field.getBoost()))))
+        .collect(Collectors.joining(" "));
   }
 
   public static void writeSearchResponse(Solr solr, SearchRequest request, Metadata meta, OutputStream output) throws IOException {
