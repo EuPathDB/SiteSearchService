@@ -55,8 +55,8 @@ public class SearchRequest {
     if (!isSubset(_restrictSearchToOrganisms, _restrictMetadataToOrganisms)) {
       throw new InvalidRequestException("All organisms in search must exist in organism metadata list");
     }
-    // already know search orgs is subset of meta orgs; org filter present if reverse is also true (i.e. sets are the same)
-    _orgFilterPresent = isSubset(_restrictMetadataToOrganisms, _restrictSearchToOrganisms);
+    // already know search orgs is subset of meta orgs; org filter present if reverse is not also true (i.e. sets are not the same)
+    _orgFilterPresent = !isSubset(_restrictMetadataToOrganisms, _restrictSearchToOrganisms);
     _filter = !requestJson.has("documentTypeFilter") ? null :
       new DocTypeFilter(requestJson.getJSONObject("documentTypeFilter"));
     if (_filter == null && requireDocTypeFilter) {
