@@ -98,14 +98,14 @@ public class SearchRequest {
 
   /**
    * Performs any transformation required on the search text.  At minimum, this
-   * includes escaping special chars.  May also include other transforms as
-   * requirements change.
+   * includes trimming leading and trailing whitespace and escaping special
+   * chars.  May also include other transforms as requirements change.
    *
    * @param rawSearchText input string from the user
    * @return search term we will send to SOLR in GET request
    */
   private String translateSearchText(String rawSearchText) {
-    return FormatUtil.escapeChars(rawSearchText, "+-&|!(){}[]^~?:\\/".toCharArray());
+    return FormatUtil.escapeChars(rawSearchText.trim(), "+-&|!(){}[]^~?:\\/".toCharArray());
   }
 
   public String getSearchText() {

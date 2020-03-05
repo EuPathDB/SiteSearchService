@@ -95,14 +95,16 @@ public class SolrCalls {
 
     // select search fields that will be applied to this search
     List<DocumentField> searchFields = meta.getSearchFields(request, applyFieldsFilter);
+    String searchQueryString = getSearchQueryString(request.getSearchText(), searchFields);
+    String searchFieldsString = formatFieldsForRequest(searchFields);
 
     String searchFiltersParam = buildQueryFilterParams(request, applyOrganismFilter);
     String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldFacetsRequested);
     
     String filteredDocsRequest =
         "/select" +                                                    // perform a search
-        "?q=" + urlEncodeUtf8(request.getSearchText()) +               // search text
-        "&qf=" + urlEncodeUtf8(formatFieldsForRequest(searchFields)) + // fields to search
+        "?q=" + urlEncodeUtf8(searchQueryString) +                     // search text
+        "&qf=" + urlEncodeUtf8(searchFieldsString) +                   // fields to search
         "&start=" + pagination.getOffset() +                           // first row to return
         "&rows=" + pagination.getNumRecords() +                        // number of documents to return
         "&facet=true" +                                                // use facets
@@ -119,6 +121,12 @@ public class SolrCalls {
     return solr.executeQuery(filteredDocsRequest, true, resp -> {
       return Solr.parseResponse(filteredDocsRequest, resp);
     });
+  }
+
+  private static String getSearchQueryString(String searchText, List<DocumentField> searchFields) {
+    return !searchText.equals("*") ? searchText :
+      // special case for raw wildcard; need to explicitly search fields
+      searchFields.stream().map(field -> field.getName() + ":*").collect(Collectors.joining(" "));
   }
 
   private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, boolean fieldQueryFacetsRequested) {
@@ -165,13 +173,15 @@ public class SolrCalls {
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
     String nextCursorMark = "*";
     String lastCursorMark = null;
-    String searchFields = formatFieldsForRequest(meta.getSearchFields(request, true));
+    List<DocumentField> searchFields = meta.getSearchFields(request, true);
+    String searchQueryString = getSearchQueryString(request.getSearchText(), searchFields);
+    String searchFieldsString = formatFieldsForRequest(searchFields);
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
     String staticPortionOfRequest =
         "/select" +                                        // perform a search
-        "?q=" + urlEncodeUtf8(request.getSearchText()) +   // search text
-        "&qf=" + urlEncodeUtf8(searchFields) +             // fields to search
+        "?q=" + urlEncodeUtf8(searchQueryString) +         // search text
+        "&qf=" + urlEncodeUtf8(searchFieldsString) +       // fields to search
         "&rows=" + FETCH_SIZE_FROM_SOLR +                  // number of documents to return
         "&defType=edismax" +                               // chosen query parser
         "&sort=" + urlEncodeUtf8(SORTING_FIELDS) +         // how to sort results
