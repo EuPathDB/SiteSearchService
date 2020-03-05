@@ -8,7 +8,7 @@ node ('centos8') {
     stage('checkout') {
         dir('project_home/install') {
            checkout([$class: 'GitSCM',
-           branches: [[name: '*/master']], 
+           branches: [[name: env.BRANCH_NAME ]],
            doGenerateSubmoduleConfigurations: false, 
            extensions: [], 
            submoduleCfg: [], 
@@ -18,7 +18,7 @@ node ('centos8') {
 
         dir('project_home/FgpUtil') {
            checkout([$class: 'GitSCM',
-           branches: [[name: '*/master']], 
+           branches: [[name: env.BRANCH_NAME ]],
            doGenerateSubmoduleConfigurations: false, 
            extensions: [], 
            submoduleCfg: [], 
@@ -28,7 +28,7 @@ node ('centos8') {
 
         dir('project_home/SiteSearchService') {
            checkout([$class: 'GitSCM',
-           branches: [[name: '*/master']],
+           branches: [[name: env.BRANCH_NAME ]],
            doGenerateSubmoduleConfigurations: false, 
            extensions: [], 
            submoduleCfg: [], 
