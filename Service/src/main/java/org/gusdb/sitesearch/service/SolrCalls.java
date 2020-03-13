@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.gusdb.fgputil.solr.Solr;
+import org.gusdb.fgputil.solr.Solr.HttpMethod;
 import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.sitesearch.service.metadata.DocumentField;
 import org.gusdb.sitesearch.service.metadata.Metadata;
@@ -46,7 +47,7 @@ public class SolrCalls {
 
   // template for metadata document requests
   private static final Function<String,String> METADOC_REQUEST = docType ->
-    "/select?q=*&fq=" + DOCUMENT_TYPE_FIELD + ":(" + docType + ")&fl=" + JSON_BLOB_FIELD + ":[json]&wt=json";
+    "q=*&fq=" + DOCUMENT_TYPE_FIELD + ":(" + docType + ")&fl=" + JSON_BLOB_FIELD + ":[json]&wt=json";
 
   // two different metadata requests required, defined by document type requested
   private static final String CATAGORIES_METADOC_REQUEST = METADOC_REQUEST.apply(CATEGORIES_META_DOCTYPE);
@@ -61,12 +62,12 @@ public class SolrCalls {
    */
   public static Metadata initializeMetadata(Solr solr) {
     // initialize metadata object with categories and document data
-    Metadata meta = solr.executeQuery(CATAGORIES_METADOC_REQUEST, true, response -> {
+    Metadata meta = solr.executeQuery(HttpMethod.GET, CATAGORIES_METADOC_REQUEST, true, response -> {
       SolrResponse result = Solr.parseResponse(CATAGORIES_METADOC_REQUEST, response);
       return new Metadata(result);
     });
     // supplement doc types with the fields in those doc types
-    return solr.executeQuery(FIELDS_METADOC_REQUEST, true, response -> {
+    return solr.executeQuery(HttpMethod.GET, FIELDS_METADOC_REQUEST, true, response -> {
       SolrResponse result = Solr.parseResponse(FIELDS_METADOC_REQUEST, response);
       return meta.addFieldData(result);
     });
@@ -102,8 +103,7 @@ public class SolrCalls {
     String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldFacetsRequested);
     
     String filteredDocsRequest =
-        "/select" +                                                    // perform a search
-        "?q=" + urlEncodeUtf8(searchQueryString) +                     // search text
+        "q=" + urlEncodeUtf8(searchQueryString) +                      // search text
         "&qf=" + urlEncodeUtf8(searchFieldsString) +                   // fields to search
         "&start=" + pagination.getOffset() +                           // first row to return
         "&rows=" + pagination.getNumRecords() +                        // number of documents to return
@@ -118,7 +118,7 @@ public class SolrCalls {
         (omitResults ? "" : "&hl.fl=*") +                              // highlight matches on all fields
         (omitResults ? "" : "&hl.method=unified") +                    // chosen highlighting method
         searchFiltersParam;                                            // filters to apply to search
-    return solr.executeQuery(filteredDocsRequest, true, resp -> {
+    return solr.executeQuery(HttpMethod.POST, filteredDocsRequest, true, resp -> {
       return Solr.parseResponse(filteredDocsRequest, resp);
     });
   }
@@ -179,8 +179,7 @@ public class SolrCalls {
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
     String staticPortionOfRequest =
-        "/select" +                                        // perform a search
-        "?q=" + urlEncodeUtf8(searchQueryString) +         // search text
+        "q=" + urlEncodeUtf8(searchQueryString) +          // search text
         "&qf=" + urlEncodeUtf8(searchFieldsString) +       // fields to search
         "&rows=" + FETCH_SIZE_FROM_SOLR +                  // number of documents to return
         "&defType=edismax" +                               // chosen query parser
@@ -190,7 +189,7 @@ public class SolrCalls {
         searchFiltersParam;                                // filters to apply to search
     while (!nextCursorMark.equals(lastCursorMark)) {
       String requestUrl = staticPortionOfRequest + "&cursorMark=" + urlEncodeUtf8(nextCursorMark);
-      SolrResponse response = solr.executeQuery(requestUrl, true, resp -> {
+      SolrResponse response = solr.executeQuery(HttpMethod.POST, requestUrl, true, resp -> {
         return Solr.parseResponse(requestUrl, resp);
       });
       for (JSONObject document : response.getDocuments()) {
