@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -136,7 +137,11 @@ public class SolrCalls {
   }
 
   private static String buildQueryFilterParams(SearchRequest request, boolean applyOrganismFilter) {
-    return
+    Optional<List<String>> organisms = applyOrganismFilter ?
+        request.getRestrictSearchToOrganisms():
+         request.getRestrictMetadataToOrganisms();
+        
+        return
       // apply project filter
       // example: -(project:[* TO *] AND -project:(PlasmoDB))
       request.getRestrictToProject().map(project ->
@@ -151,10 +156,10 @@ public class SolrCalls {
 
       // apply organism filter only if asked
       // example: -(organism:[* TO *] AND -organism:("Plasmodium falciparum 3D7" OR "Plasmodium falciparum 7G8"))
-      (!applyOrganismFilter ? "" :
-        request.getRestrictSearchToOrganisms().map(orgs ->
+
+        organisms.map(orgs ->
           "&fq=" + urlEncodeUtf8("-(" + ORGANISM_FIELD + ":[* TO *] AND -" + ORGANISM_FIELD + ":(" + getOrgFilterCondition(orgs) + "))")
-        ).orElse(""));
+        ).orElse("");
   }
 
   private static String getOrgFilterCondition(List<String> organisms) {
