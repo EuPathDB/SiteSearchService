@@ -104,13 +104,13 @@ public class Service {
     if (request.hasOrganismFilter()) {
       // need another call; one without organism filter applied to get org facets
       SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, false, true, false);
-      //meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
+      meta.setOrganismFacetCounts(request.getRestrictMetadataToOrganisms(), facetResponse.getFacetCounts());
     }
 
     if (request.hasDocTypeFilterAndFields()) {
       // need another call; one without fields filtering applied to get field facets
       SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, true, false, true);
-      //meta.setFieldFacetCounts(request.getDocTypeFilter(), facetResponse.getFacetQueryResults());
+      meta.setFieldFacetCounts(request.getDocTypeFilter(), facetResponse.getFacetQueryResults());
     }
 
     return Response.ok(ResultsFormatter.formatResults(meta, searchResults, request.getRestrictToProject()).toString(2)).build();
