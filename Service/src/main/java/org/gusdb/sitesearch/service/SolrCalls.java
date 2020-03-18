@@ -109,6 +109,7 @@ public class SolrCalls {
         "&start=" + pagination.getOffset() +                           // first row to return
         "&rows=" + pagination.getNumRecords() +                        // number of documents to return
         "&facet=true" +                                                // use facets
+        "&facet.limit=-1" +                                            // turn off max # of facets returned
         "&facet.field=" + DOCUMENT_TYPE_FIELD +                        // declare document-type as facet field
         "&facet.field=" + ORGANISM_FIELD +                             // declare organism as facet field
         fieldQueryFacets +                                             // special field facets
@@ -137,11 +138,12 @@ public class SolrCalls {
   }
 
   private static String buildQueryFilterParams(SearchRequest request, boolean applyOrganismFilter) {
+    // if applyOrganismFilter is false, then still filter on orgs this request cares about (i.e. metadata orgs)
     Optional<List<String>> organisms = applyOrganismFilter ?
-        request.getRestrictSearchToOrganisms():
-         request.getRestrictMetadataToOrganisms();
-        
-        return
+        request.getRestrictSearchToOrganisms() :
+        request.getRestrictMetadataToOrganisms();
+
+    return
       // apply project filter
       // example: -(project:[* TO *] AND -project:(PlasmoDB))
       request.getRestrictToProject().map(project ->
@@ -156,10 +158,9 @@ public class SolrCalls {
 
       // apply organism filter only if asked
       // example: -(organism:[* TO *] AND -organism:("Plasmodium falciparum 3D7" OR "Plasmodium falciparum 7G8"))
-
-        organisms.map(orgs ->
-          "&fq=" + urlEncodeUtf8("-(" + ORGANISM_FIELD + ":[* TO *] AND -" + ORGANISM_FIELD + ":(" + getOrgFilterCondition(orgs) + "))")
-        ).orElse("");
+      organisms.map(orgs ->
+        "&fq=" + urlEncodeUtf8("-(" + ORGANISM_FIELD + ":[* TO *] AND -" + ORGANISM_FIELD + ":(" + getOrgFilterCondition(orgs) + "))")
+      ).orElse("");
   }
 
   private static String getOrgFilterCondition(List<String> organisms) {

@@ -100,7 +100,7 @@ public class Service {
     //  - doc type facets are correct because: if doc type filter applied, we only need a count for that type
     //  - organism facets are wrong if org filter present; recalculate with org filter off
     //  - field facets are wrong if field filter present; recalculate with field filter off
-    
+
     if (request.hasOrganismFilter()) {
       // need another call; one without organism filter applied to get org facets
       SolrResponse facetResponse = SolrCalls.getSearchResponse(solr, request, meta, true, false, true, false);
