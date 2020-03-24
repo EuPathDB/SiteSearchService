@@ -42,6 +42,7 @@ public class ResultsFormatter {
         JSONObject json = new JSONObject()
           .put("documentType", docType.getId())
           .put("primaryKey", primaryKey)
+          .put("project", documentJson.optString(SolrCalls.PROJECT_FIELD, null))
           .put("organism", documentJson.optString(SolrCalls.ORGANISM_FIELD, null))
           .put("score", documentJson.getDouble(SolrCalls.SCORE_FIELD))
           .put("wdkPrimaryKeyString", documentJson.optString(SolrCalls.WDK_PRIMARY_KEY_FIELD, null))
