@@ -138,7 +138,7 @@ public class Metadata {
     return json;
   }
 
-  public List<DocumentField> getSearchFields(SearchRequest request, boolean applyFieldsFilter) {
+  public TwoTuple<List<DocumentField>,Boolean> getSearchFields(SearchRequest request, boolean applyFieldsFilter) {
 
     // gather filtering options
     Optional<String> docTypeFilter = request.getDocTypeFilter().map(filter -> filter.getDocType());
@@ -147,8 +147,9 @@ public class Metadata {
         request.getDocTypeFilter().get().getFoundOnlyInFields() : Optional.empty();
     Optional<String> projectFilter = request.getRestrictToProject();
 
-    // build out list of fields
+    // build out list of fields and mark if all fields included
     List<DocumentField> fields = new ArrayList<>();
+    boolean allFieldsIncluded = true;
     for (DocumentType type : _docTypes.values()) {
       // if no docType filter, then add all fields for all types
       if (docTypeFilter.isEmpty()) {
@@ -162,6 +163,7 @@ public class Metadata {
         }
         // if fields filter present, only add fields for this docType which are also in the requested list
         else {
+          allFieldsIncluded = false;
           List<String> requestedSearchFields = fieldsFilter.get();
           for (DocumentField field : type.getSearchFields(projectFilter)) {
             if (requestedSearchFields.contains(field.getName())) {
@@ -171,7 +173,7 @@ public class Metadata {
         }
       }
     }
-    return fields;
+    return new TwoTuple<>(fields, allFieldsIncluded);
   }
 
   public Optional<DocumentType> getDocumentType(String docTypeId) {

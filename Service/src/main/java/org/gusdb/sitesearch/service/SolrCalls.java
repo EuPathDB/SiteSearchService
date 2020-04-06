@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.gusdb.fgputil.Tuples.TwoTuple;
 import org.gusdb.fgputil.solr.Solr;
 import org.gusdb.fgputil.solr.Solr.HttpMethod;
 import org.gusdb.fgputil.solr.SolrResponse;
@@ -96,12 +97,12 @@ public class SolrCalls {
       request.getPagination().get(); // should always be present for this call; bug if not
 
     // select search fields that will be applied to this search
-    List<DocumentField> searchFields = meta.getSearchFields(request, applyFieldsFilter);
+    TwoTuple<List<DocumentField>,Boolean> searchFields = meta.getSearchFields(request, applyFieldsFilter);
     String searchQueryString = getSearchQueryString(request.getSearchText(), searchFields);
-    String searchFieldsString = formatFieldsForRequest(searchFields);
+    String searchFieldsString = formatFieldsForRequest(searchFields.getFirst());
 
     String searchFiltersParam = buildQueryFilterParams(request, applyOrganismFilter);
-    String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields, fieldFacetsRequested);
+    String fieldQueryFacets = buildFieldQueryFacets(request.getSearchText(), searchFields.getFirst(), fieldFacetsRequested);
     
     String filteredDocsRequest =
         "q=" + urlEncodeUtf8(searchQueryString) +                      // search text
@@ -125,10 +126,10 @@ public class SolrCalls {
     });
   }
 
-  private static String getSearchQueryString(String searchText, List<DocumentField> searchFields) {
-    return !searchText.equals("*") ? searchText :
-      // special case for raw wildcard; need to explicitly search fields
-      searchFields.stream().map(field -> field.getName() + ":*").collect(Collectors.joining(" "));
+  private static String getSearchQueryString(String searchText, TwoTuple<List<DocumentField>,Boolean> searchFields) {
+    return !searchText.equals("*") ? searchText : searchFields.getSecond() ? "*:*" :
+      // special case for raw wildcard; need to explicitly search fields if field filter present
+      searchFields.getFirst().stream().map(field -> field.getName() + ":*").collect(Collectors.joining(" "));
   }
 
   private static String buildFieldQueryFacets(String searchText, List<DocumentField> searchFields, boolean fieldQueryFacetsRequested) {
@@ -144,6 +145,11 @@ public class SolrCalls {
         request.getRestrictMetadataToOrganisms();
 
     return
+      // add always-on filter to remove metadata and batch doc types from any search results
+      "&fq=" + urlEncodeUtf8("-(" + DOCUMENT_TYPE_FIELD + ":(" + CATEGORIES_META_DOCTYPE + "))") +
+      "&fq=" + urlEncodeUtf8("-(" + DOCUMENT_TYPE_FIELD + ":(" + FIELDS_META_DOCTYPE + "))") +
+      "&fq=" + urlEncodeUtf8("-(" + DOCUMENT_TYPE_FIELD + ":(" + BATCH_META_DOCTYPE + "))") +
+
       // apply project filter
       // example: -(project:[* TO *] AND -project:(PlasmoDB))
       request.getRestrictToProject().map(project ->
@@ -179,9 +185,9 @@ public class SolrCalls {
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
     String nextCursorMark = "*";
     String lastCursorMark = null;
-    List<DocumentField> searchFields = meta.getSearchFields(request, true);
+    TwoTuple<List<DocumentField>,Boolean> searchFields = meta.getSearchFields(request, true);
     String searchQueryString = getSearchQueryString(request.getSearchText(), searchFields);
-    String searchFieldsString = formatFieldsForRequest(searchFields);
+    String searchFieldsString = formatFieldsForRequest(searchFields.getFirst());
     String searchFiltersParam = buildQueryFilterParams(request, true);
     String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
     String staticPortionOfRequest =
