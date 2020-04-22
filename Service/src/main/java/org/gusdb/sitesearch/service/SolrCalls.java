@@ -189,7 +189,7 @@ public class SolrCalls {
     String searchQueryString = getSearchQueryString(request.getSearchText(), searchFields);
     String searchFieldsString = formatFieldsForRequest(searchFields.getFirst());
     String searchFiltersParam = buildQueryFilterParams(request, true);
-    String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD;
+    String fieldsToReturn = PRIMARY_KEY_FIELD + " " + SCORE_FIELD + " " + PROJECT_FIELD;
     String staticPortionOfRequest =
         "q=" + urlEncodeUtf8(searchQueryString) +          // search text
         "&qf=" + urlEncodeUtf8(searchFieldsString) +       // fields to search
@@ -208,6 +208,8 @@ public class SolrCalls {
         writer.write(document.getJSONArray(PRIMARY_KEY_FIELD).toString());
         writer.write(TAB);
         writer.write(String.valueOf(document.getDouble(SCORE_FIELD)));
+        writer.write(TAB);
+        writer.write(document.optString(PROJECT_FIELD, ""));
         writer.write(NL);
       }
       lastCursorMark = nextCursorMark;
