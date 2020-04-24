@@ -1,3 +1,45 @@
-#!/bin/bash
+#!/usr/bin/perl
 
-fgpJava org.gusdb.sitesearch.service.server.Server $@
+################################################################################
+# NOTE: old code here used to simply call fgpUtil; we copy/pasted into a custom
+#       script ONLY to add the following JVM flag, needed because of JVM bug in
+#       certain versions of Java:
+#
+#    -Djdk.tls.client.protocols="TLSv1,TLSv1.1,TLSv1.2"
+#
+# Bug described here:
+#   https://stackoverflow.com/questions/54119613/sslhandshakeexception-received-fatal-alert-record-overflow
+#   https://bugs.openjdk.java.net/browse/JDK-8221253
+#
+###!/bin/bash
+#fgpJava org.gusdb.sitesearch.service.server.Server $@
+################################################################################
+
+use lib "$ENV{GUS_HOME}/lib/perl";
+
+use FgpUtil::Util::CommandHelper;
+
+my $gusHome = $ENV{GUS_HOME};
+my $classpath = &FgpUtil::Util::CommandHelper::getJavaClasspath($gusHome);
+my $sysProps = &FgpUtil::Util::CommandHelper::getSystemProps($gusHome, 'fgpJava');
+
+sub main {
+    @args = @_;
+    $cmd = "java $sysProps -Djdk.tls.client.protocols=\"TLSv1,TLSv1.1,TLSv1.2\" -classpath $classpath org.gusdb.sitesearch.service.server.Server @args";
+    my $err = system($cmd);
+    return $err >> 8;
+}
+
+sub printUsageAndDie { # no arguments
+    printf(STDERR "\nUSAGE: fgpJava <java_class> [<arg1> <arg2> ...]\n\n");
+    exit 1;
+}
+
+################### Parse args and call main sub ###################
+
+if ($#ARGV < 0) {
+    # fewer than 1 arg
+    printUsageAndDie();
+}
+
+exit(main(@ARGV));
