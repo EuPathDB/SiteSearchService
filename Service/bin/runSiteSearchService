@@ -23,23 +23,7 @@ my $gusHome = $ENV{GUS_HOME};
 my $classpath = &FgpUtil::Util::CommandHelper::getJavaClasspath($gusHome);
 my $sysProps = &FgpUtil::Util::CommandHelper::getSystemProps($gusHome, 'fgpJava');
 
-sub main {
-    @args = @_;
-    $cmd = "java $sysProps -Djdk.tls.client.protocols=\"TLSv1,TLSv1.1,TLSv1.2\" -classpath $classpath org.gusdb.sitesearch.service.server.Server @args";
-    my $err = system($cmd);
-    return $err >> 8;
-}
+my $cmd = "java $sysProps -Djdk.tls.client.protocols=\"TLSv1,TLSv1.1,TLSv1.2\" -classpath $classpath org.gusdb.sitesearch.service.server.Server @ARGV";
+my $err = system($cmd);
 
-sub printUsageAndDie { # no arguments
-    printf(STDERR "\nUSAGE: fgpJava <java_class> [<arg1> <arg2> ...]\n\n");
-    exit 1;
-}
-
-################### Parse args and call main sub ###################
-
-if ($#ARGV < 0) {
-    # fewer than 1 arg
-    printUsageAndDie();
-}
-
-exit(main(@ARGV));
+exit($err >> 8);
