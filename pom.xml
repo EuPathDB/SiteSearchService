@@ -10,21 +10,6 @@
     <module>Service</module>
   </modules>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.gusdb</groupId>
-        <artifactId>fgputil-util</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.gusdb</groupId>
-        <artifactId>fgputil-server</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <parent>
     <groupId>org.gusdb</groupId>
     <artifactId>base-pom</artifactId>

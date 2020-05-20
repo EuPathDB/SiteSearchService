@@ -1,0 +1,21 @@
+{
+  "Configuration": {
+    "Appenders": {
+      "Console": {
+        "name": "STDOUT",
+        "target": "SYSTEM_OUT",
+        "PatternLayout": { "pattern": "%-9r [%-5p] [%d{dd/MMM/yyyy|HH:mm:ss}] - %C:%L - %m%n" }
+      }
+    },
+    "Loggers": {
+      "Logger": [{
+        "name": "org.gusdb",
+        "level": "info"
+      }],
+      "Root": {
+        "level": "warn",
+        "AppenderRef": { "ref": "STDOUT" }
+      }
+    }
+  }
+}
