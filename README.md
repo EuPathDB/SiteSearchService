@@ -14,6 +14,5 @@ Where:
   baseUri: should be a fully qualified URL to the service (e.g. http...) OR the service path beginning with a '/' (e.g. /my-service)
   configFile: a JSON file including a single JSON object, with a single 'solrUrl' property. 
 ```  
-## Manifest
 
 
