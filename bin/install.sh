@@ -16,7 +16,7 @@ echo " - SiteSearchService"
 git clone https://github.com/VEuPathDB/SiteSearchService.git
 cd ..
 echo "Setting build environment"
-source install/bin/gusEnv.bash
+source project_home/install/bin/gusEnv.bash
 bld SiteSearchData
 echo
 echo "You're all set!"
