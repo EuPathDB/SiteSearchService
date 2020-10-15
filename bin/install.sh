@@ -6,7 +6,9 @@ mkdir -p gus_home/config
 echo "perl=/usr/bin/perl" > gus_home/config/gus.config
 mkdir project_home
 cd project_home
-tsrc init git@github.com:ryanrdoherty/tsrc2.git --group siteSearchService
+git clone https://github.com/VEuPathDB/install.git
+git clone https://github.com/VEuPathDB/FgpUtil.git
+git clone https://github.com/VEuPathDB/SiteSearchService.git
 cd ..
 source install/bin/gusEnv.bash
 bld SiteSearchData
