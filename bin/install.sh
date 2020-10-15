@@ -9,11 +9,11 @@ mkdir project_home
 cd project_home
 echo "Cloning required project repositories"
 echo " - install"
-git clone https://github.com/VEuPathDB/install.git > /dev/null
+git clone https://github.com/VEuPathDB/install.git
 echo " - FgpUtil"
-git clone https://github.com/VEuPathDB/FgpUtil.git > /dev/null
+git clone https://github.com/VEuPathDB/FgpUtil.git
 echo " - SiteSearchService"
-git clone https://github.com/VEuPathDB/SiteSearchService.git > /dev/null
+git clone https://github.com/VEuPathDB/SiteSearchService.git
 cd ..
 echo "Setting build environment"
 source install/bin/gusEnv.bash
