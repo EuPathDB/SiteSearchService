@@ -13,9 +13,9 @@ services:
       - traefik
     labels:
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.sitesearch-${ROUTER:-ss-dev}.rule=Host(`${DOMAIN:-orthosearch-dev.local.apidb.org}`)"
-      - "traefik.http.routers.sitesearch-${ROUTER:-ss-dev}.tls=true"
-      - "traefik.http.routers.sitesearch-${ROUTER:-ss-dev}.entrypoints=local"
+      - "traefik.http.routers.orthosearch-${ROUTER:-os-dev}.rule=Host(`${DOMAIN:-orthosearch-dev.local.apidb.org}`)"
+      - "traefik.http.routers.orthosearch-${ROUTER:-os-dev}.tls=true"
+      - "traefik.http.routers.orthosearch-${ROUTER:-os-dev}.entrypoints=local"
       - "com.centurylinklabs.watchtower.enable=${SITESEARCH_WATCHTOWER:-false}"
 
   sitesearch:
