@@ -58,7 +58,7 @@ node ('centos8') {
         sh 'podman build -t build_container -f $WORKSPACE/project_home/SiteSearchService/dockerfiles/Dockerfile.build .'
 
         // build the service inside the build_container
-        sh 'podman run --rm -v /tmp/.m2:/root/.m2:Z -v $WORKSPACE:/tmp/base_gus:Z --name builder build_container bld SiteSearchService'
+        sh 'podman run --rm -v /tmp/.m2:/root/.m2:Z -v $WORKSPACE:/tmp/base_gus:Z --name builder build_container build SiteSearchService install -append'
         }
 
     stage('package') {
