@@ -22,7 +22,7 @@ jar: fgputil
 	mvn clean package
 
 fgputil:
-	./bin/build-fgputil.sh
+	bash bin/build-fgputil.sh
 
 .PHONY: docker
 docker:

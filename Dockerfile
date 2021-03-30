@@ -5,27 +5,21 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 FROM veupathdb/alpine-dev-base:jdk-15 AS prep
 
-LABEL service="eda-data-build"
+LABEL service="site-search-build"
 
 WORKDIR /workspace
+
 RUN jlink --compress=2 --module-path /opt/jdk/jmods \
        --add-modules java.base,java.net.http,java.security.jgss,java.logging,java.xml,java.desktop,java.management,java.sql,java.naming \
        --output /jlinked \
-    && apk add --no-cache git sed findutils coreutils make npm curl \
+    && apk add --no-cache git sed findutils coreutils make npm curl maven bash \
     && git config --global advice.detachedHead false
 
 ENV DOCKER=build
-COPY makefile .
-
-RUN make install-dev-env
 
 COPY . .
 
-RUN mkdir -p vendor \
-    && cp -n /jdbc/* vendor \
-    && echo Installing Gradle \
-    && ./gradlew dependencies --info --configuration runtimeClasspath \
-    && make jar
+RUN make jar
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
@@ -34,12 +28,12 @@ RUN mkdir -p vendor \
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 FROM foxcapades/alpine-oracle:1.3
 
-LABEL service="eda-data"
+LABEL service="site-search"
 
 ENV JAVA_HOME=/opt/jdk \
     PATH=/opt/jdk/bin:$PATH
 
 COPY --from=prep /jlinked /opt/jdk
-COPY --from=prep /workspace/build/libs/service.jar /service.jar
+COPY --from=prep /workspace/target/service.jar /service.jar
 
-CMD java -jar /service.jar
+CMD java -jar /service.jar / 8080
