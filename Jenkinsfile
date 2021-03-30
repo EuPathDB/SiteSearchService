@@ -10,3 +10,4 @@ node('centos8') {
   def builder = new Builder(this)
   builder.buildContainers([[name: 'site-search']])
 
+}
