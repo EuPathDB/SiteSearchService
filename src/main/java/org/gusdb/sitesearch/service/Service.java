@@ -23,7 +23,7 @@ import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.fgputil.web.MimeTypes;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
-import org.gusdb.sitesearch.service.server.Context;
+import org.gusdb.sitesearch.service.server.Server.Context;
 import org.json.JSONObject;
 
 @Path("/")

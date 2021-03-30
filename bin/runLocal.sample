@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export SOLR_URL=https://solr-sitesearch-dev.local.apidb.org:8443/solr/site_search
+
+java -jar target/service.jar / 8080
