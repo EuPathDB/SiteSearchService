@@ -16,6 +16,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.gusdb.fgputil.runtime.BuildStatus;
 import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.solr.Solr;
@@ -23,11 +25,13 @@ import org.gusdb.fgputil.solr.SolrResponse;
 import org.gusdb.fgputil.web.MimeTypes;
 import org.gusdb.sitesearch.service.metadata.Metadata;
 import org.gusdb.sitesearch.service.request.SearchRequest;
-import org.gusdb.sitesearch.service.server.Context;
+import org.gusdb.sitesearch.service.server.Server.Context;
 import org.json.JSONObject;
 
 @Path("/")
 public class Service {
+
+  private static final Logger LOG = LogManager.getLogger(Service.class);
 
   private static Solr getSolr() {
     return new Solr((String)RESTServer.getApplicationContext().get(Context.SOLR_URL));
@@ -63,6 +67,7 @@ public class Service {
   @Path("/categories-metadata")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCategoriesJson(@QueryParam("projectId") String projectId) {
+    LOG.info("Request received for categories metadata");
     Metadata meta = SolrCalls.initializeMetadata(getSolr());
     return Response.ok(
       new JSONObject()

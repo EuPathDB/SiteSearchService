@@ -3,6 +3,8 @@ package org.gusdb.sitesearch.service.server;
 import java.net.URI;
 
 import org.glassfish.jersey.server.ResourceConfig;
+import org.gusdb.fgputil.runtime.Environment;
+import org.gusdb.fgputil.server.BasicApplicationContext;
 import org.gusdb.fgputil.server.RESTServer;
 import org.gusdb.fgputil.web.ApplicationContext;
 import org.gusdb.sitesearch.service.Service;
@@ -11,12 +13,20 @@ import org.json.JSONObject;
 
 public class Server extends RESTServer {
 
+  private static final String SERVER_PORT_ENV_VAR = "SERVER_PORT";
+
   public static void main(String[] args) {
-    new Server(args).start();
+    String port = Environment.getOptionalVar(SERVER_PORT_ENV_VAR, "8080");
+    new Server(new String[] { "http://0.0.0.0", port }).start();
   }
 
   private Server(String[] args) {
     super(args);
+  }
+
+  @Override
+  protected boolean requiresConfigFile() {
+    return false;
   }
 
   @Override
@@ -33,4 +43,20 @@ public class Server extends RESTServer {
     return new Context(config);
   }
 
+  public static class Context extends BasicApplicationContext {
+
+    public static final String SOLR_URL = "SOLR_URL";
+
+    /**
+     * @param config unused config; now performed by env vars
+     */
+    public Context(JSONObject config) {
+      put(SOLR_URL, Environment.getRequiredVar(SOLR_URL));
+    }
+
+    @Override
+    public void close() {
+      // nothing to do here
+    }
+  }
 }
