@@ -13,8 +13,11 @@ import org.json.JSONObject;
 
 public class Server extends RESTServer {
 
+  private static final String SERVER_PORT_ENV_VAR = "SERVER_PORT";
+
   public static void main(String[] args) {
-    new Server(args).start();
+    String port = Environment.getOptionalVar(SERVER_PORT_ENV_VAR, "8080");
+    new Server(new String[] { "http://0.0.0.0", port }).start();
   }
 
   private Server(String[] args) {
