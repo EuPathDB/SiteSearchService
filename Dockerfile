@@ -36,4 +36,5 @@ ENV JAVA_HOME=/opt/jdk \
 COPY --from=prep /jlinked /opt/jdk
 COPY --from=prep /workspace/target/service.jar /service.jar
 
+EXPOSE 8080
 CMD java -jar /service.jar http://0.0.0.0 8080
