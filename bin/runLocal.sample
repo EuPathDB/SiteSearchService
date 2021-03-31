@@ -2,4 +2,6 @@
 
 export SOLR_URL=https://solr-sitesearch-dev.local.apidb.org:8443/solr/site_search
 
-java -jar target/service.jar
+debugOpts="-agentlib:jdwp=transport=dt_socket,address=127.0.0.1:8888,server=y,suspend=n"
+
+java $debugOpts -jar target/service.jar
