@@ -3,12 +3,13 @@ package org.gusdb.sitesearch.service.exception;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.gusdb.fgputil.solr.SolrRuntimeException;
 
 public class SiteSearchExceptionMapper implements ExceptionMapper<Exception> {
 
-  private static final Logger LOG = Logger.getLogger(SiteSearchExceptionMapper.class);
+  private static final Logger LOG = LogManager.getLogger(SiteSearchExceptionMapper.class);
 
   @Override
   public Response toResponse(Exception exception) {
