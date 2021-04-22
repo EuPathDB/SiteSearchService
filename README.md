@@ -28,3 +28,6 @@ bin/runDocker.sample
 ```
 A docker-compose.yml file is included to deploy this service with its SOLR instance in one step.
 
+## Serving from multiple cores
+There are cases where you may want to serve data from another core, but do not want to create another stack with its own solr.  In that case, you can run another service and set SOLR_URL to the path of the core in the existing solr.  This is how the "orthosearch" service is setup (see docker-compose.yml), which runs another copy of the service, but configured to point to its own core.  Traefik rules are then setup to direct to the orthoservice appropriately.
+
