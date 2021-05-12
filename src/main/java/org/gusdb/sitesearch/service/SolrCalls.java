@@ -27,7 +27,7 @@ public class SolrCalls {
 
   // hard-coded document fields
   public static final String DOCUMENT_TYPE_FIELD = "document-type";
-  public static final String ORGANISM_FIELD = "organism";
+  public static final String ORGANISM_FIELD = "organismsForFilter";
   public static final String PROJECT_FIELD = "project";
   public static final String ID_FIELD = "id";
   public static final String PRIMARY_KEY_FIELD = "primaryKey";
