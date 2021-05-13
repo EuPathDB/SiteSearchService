@@ -27,7 +27,7 @@ fgputil:
 
 .PHONY: docker
 docker:
-	docker build -t site-search .
+	docker build -no-cache -t site-search .
 
 .PHONY: clean
 clean:
