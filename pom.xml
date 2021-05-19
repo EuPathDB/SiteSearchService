@@ -4,6 +4,7 @@
 
   <name>Site Search Service</name>
   <artifactId>site-search-service</artifactId>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <parent>
