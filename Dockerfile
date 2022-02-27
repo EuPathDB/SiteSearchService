@@ -30,12 +30,16 @@ FROM foxcapades/alpine-oracle:1.3
 
 LABEL service="site-search"
 
+ENV TZ="America/New_York"
+RUN date
+
 ENV JAVA_HOME=/opt/jdk \
-    PATH=/opt/jdk/bin:$PATH
+    PATH=/opt/jdk/bin:$PATH \
+    JVM_ARGS=""
 
 COPY --from=prep /jlinked /opt/jdk
 COPY --from=prep /workspace/target/service.jar /service.jar
 
 EXPOSE 8080
 
-CMD java -jar /service.jar
+CMD java -jar -XX:+CrashOnOutOfMemoryError $JVM_ARGS /service.jar
