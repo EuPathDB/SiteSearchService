@@ -27,7 +27,7 @@ services:
       - traefik
     labels:
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.rule=Host(`${ORTHO_DOMAIN:-edasearch-dev.local.apidb.org}`)"
+      - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.rule=Host(`${EDA_DOMAIN:-edasearch-dev.local.apidb.org}`)"
       - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.tls=true"
       - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.entrypoints=local"
       - "com.centurylinklabs.watchtower.enable=${SITESEARCH_WATCHTOWER:-false}"
