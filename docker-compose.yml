@@ -18,6 +18,20 @@ services:
       - "traefik.http.routers.orthosearch-${ROUTER:-os-dev}.entrypoints=local"
       - "com.centurylinklabs.watchtower.enable=${SITESEARCH_WATCHTOWER:-false}"
 
+  edasearch:
+    image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
+    environment:
+      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr/edasearch
+    networks:
+      - internal
+      - traefik
+    labels:
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.rule=Host(`${ORTHO_DOMAIN:-edasearch-dev.local.apidb.org}`)"
+      - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.tls=true"
+      - "traefik.http.routers.orthosearch-${ROUTER:-es-dev}.entrypoints=local"
+      - "com.centurylinklabs.watchtower.enable=${SITESEARCH_WATCHTOWER:-false}"
+
   sitesearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
