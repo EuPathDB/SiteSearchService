@@ -58,6 +58,7 @@ services:
       SOLR_OPTS: "$SOLR_OPTS -Dlog4j2.formatMsgNoLookups=true"
     volumes:
       - solrdata:/var/solr
+      - /vagrant/scratch/SolrDeployment/crepo_files/crepo:/usr/local/bin/crepo
     networks:
       - internal
       - traefik
