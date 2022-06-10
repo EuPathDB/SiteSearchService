@@ -53,8 +53,8 @@ services:
       REPO_ENV: ${SOLR_REPO_ENV:-dev}
       REPO_KEY: ${SOLR_REPO_KEY}
       REPO_HOST: ${SOLR_REPO_HOST}
-      REPO_REMOTE_PATH: ${REPO_REMOTE_PATH:-/var/lib/crepo/cores}
-      REPO_REMOTE_PORT: ${REPO_REMOTE_PORT:-2112}
+      REPO_REMOTE_PATH: ${SOLR_REPO_REMOTE_PATH}
+      REPO_REMOTE_PORT: ${SOLR_REPO_REMOTE_PORT}
       # mitigation for cve-2021-44228
       SOLR_OPTS: "$SOLR_OPTS -Dlog4j2.formatMsgNoLookups=true"
     volumes:
