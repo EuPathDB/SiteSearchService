@@ -30,8 +30,9 @@ FROM foxcapades/alpine-oracle:1.3
 
 LABEL service="site-search"
 
-ENV TZ="America/New_York"
-RUN date
+RUN apk add --no-cache tzdata \
+    && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
+    && echo "America/New_York" > /etc/timezone
 
 ENV JAVA_HOME=/opt/jdk \
     PATH=/opt/jdk/bin:$PATH \
