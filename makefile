@@ -27,4 +27,4 @@ docker:
 
 .PHONY: clean
 clean:
-	@rm -rf .build target
+	mvn clean
