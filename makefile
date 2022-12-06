@@ -18,17 +18,13 @@ default:
 	@echo ""
 
 .PHONY: jar
-jar: fgputil
-	mvn clean package
-
-.PHONY: fgputil
-fgputil:
-	bash bin/build-fgputil.sh
+jar:
+	mvn clean package --settings ./settings.xml
 
 .PHONY: docker
 docker:
-	docker build --no-cache -t site-search .
+	docker build --no-cache -t site-search . --build-arg GITHUB_USERNAME=${GITHUB_USERNAME} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN}
 
 .PHONY: clean
 clean:
-	@rm -rf .build target
+	mvn clean
