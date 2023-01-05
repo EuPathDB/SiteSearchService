@@ -17,7 +17,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <fgputil.version>2.9.1</fgputil.version>
+    <fgputil.version>2.9.3</fgputil.version>
   </properties>
 
   <dependencies>
@@ -62,9 +62,16 @@
       <artifactId>jersey-client</artifactId>
     </dependency>
 
+    <!--NOTE: These dependencies work with Java 11 only; Java 17 removes    -->
+    <!--      some old libs on which these depend and will break this build -->
     <dependency>
       <groupId>org.glassfish.jersey.inject</groupId>
       <artifactId>jersey-hk2</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.activation</groupId>
+      <artifactId>activation</artifactId>
     </dependency>
 
     <dependency>
