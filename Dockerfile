@@ -3,7 +3,7 @@
 #   Build Service & Dependencies
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-FROM veupathdb/alpine-dev-base:jdk-18 AS prep
+FROM amazoncorretto:11-alpine3.16 AS prep
 
 LABEL service="site-search-build"
 
@@ -15,7 +15,7 @@ WORKDIR /workspace
 RUN jlink --compress=2 --module-path /opt/jdk/jmods \
        --add-modules java.base,java.net.http,java.security.jgss,java.logging,java.xml,java.desktop,java.management,java.sql,java.naming \
        --output /jlinked \
-    && apk add --no-cache git sed findutils coreutils make npm curl bash gawk jq \
+    && apk add --no-cache git sed findutils coreutils make npm curl bash gawk maven jq \
     && git config --global advice.detachedHead false
 
 ENV DOCKER=build
