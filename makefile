@@ -19,12 +19,12 @@ default:
 
 .PHONY: jar
 jar:
-	mvn clean package --settings ./settings.xml
+	@gradle clean test shadowJar
 
 .PHONY: docker
 docker:
-	docker build --no-cache -t site-search . --build-arg GITHUB_USERNAME=${GITHUB_USERNAME} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN}
+	@docker build --no-cache -t site-search . --build-arg GITHUB_USERNAME=${GITHUB_USERNAME} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN}
 
 .PHONY: clean
 clean:
-	mvn clean
+	gradle clean
