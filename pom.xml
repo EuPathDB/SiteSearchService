@@ -12,12 +12,12 @@
   <parent>
     <groupId>org.gusdb</groupId>
     <artifactId>base-pom</artifactId>
-    <version>2.13</version>
+    <version>2.16</version>
   </parent>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <fgputil.version>2.9.3</fgputil.version>
+    <fgputil.version>2.12.11</fgputil.version>
   </properties>
 
   <dependencies>
@@ -133,4 +133,4 @@
   </build>
 
 </project>
- 
+
