@@ -32,7 +32,8 @@ public class Service {
   private static final Logger LOG = LogManager.getLogger(Service.class);
 
   private static Solr getSolr() {
-    return new Solr((String)RESTServer.getApplicationContext().get(Context.SOLR_URL));
+    var ctx = RESTServer.getApplicationContext();
+    return new Solr(joinUrl((String)ctx.get(Context.SOLR_URL), (String)ctx.get(Context.SOLR_CORE)));
   }
 
   @GET
@@ -94,7 +95,7 @@ public class Service {
 
     // Build the SOLR request URL
     var url = (String) RESTServer.getApplicationContext().get(Context.SOLR_URL);
-    var ep = url.endsWith("/") ? url + "suggest" : url + "/suggest";
+    var ep = joinUrl(url, "suggest");
     var q = ep + "?suggest.q=" + URLEncoder.encode(searchText, Charset.defaultCharset());
 
     // Open the connection to SOLR
@@ -153,6 +154,20 @@ public class Service {
     return Response.ok(BuildStatus.getLatestBuildStatus()).build();
   }
 
+  @GET
+  @Path("/cores")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getCoresInfo() {
+    var url = (String) RESTServer.getApplicationContext().get(Context.SOLR_URL);
+    var ep = joinUrl(url, "admin/cores");
+    try(var stream = new URL(ep).openConnection().getInputStream()) {
+      return Response.ok(new String(stream.readAllBytes())).build();
+    } catch (IOException e) {
+      LOG.error("failed to connect to SOLR: ", e);
+      throw new InternalServerErrorException("failed to connect to SOLR");
+    }
+  }
+
   private static Response handleSearchRequest(Solr solr, SearchRequest request) {
 
     // initialize metadata (2 SOLR calls for docTypes and fields)
@@ -203,5 +218,9 @@ public class Service {
         SolrCalls.writeSearchResponse(solr, request, meta, output);
       }
     }).build();
+  }
+
+  private static String joinUrl(String seg1, String seg2) {
+    return (seg1.endsWith("/")) ? seg1 + seg2 : seg1 + "/" + seg2;
   }
 }

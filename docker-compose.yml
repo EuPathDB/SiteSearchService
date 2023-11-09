@@ -7,7 +7,8 @@ services:
   orthosearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr/orthosearch
+      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_CORE: orthosearch
     networks:
       - internal
       - traefik
@@ -21,7 +22,8 @@ services:
   edasearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr/edasearch
+      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_CORE: edasearch
     networks:
       - internal
       - traefik
@@ -35,7 +37,8 @@ services:
   sitesearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr/site_search
+      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_CORE: site_search
     networks:
       - internal
       - traefik

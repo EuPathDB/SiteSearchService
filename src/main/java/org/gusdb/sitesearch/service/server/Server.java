@@ -46,12 +46,14 @@ public class Server extends RESTServer {
   public static class Context extends BasicApplicationContext {
 
     public static final String SOLR_URL = "SOLR_URL";
+    public static final String SOLR_CORE = "SOLR_CORE";
 
     /**
      * @param config unused config; now performed by env vars
      */
     public Context(JSONObject config) {
       put(SOLR_URL, Environment.getRequiredVar(SOLR_URL));
+      put(SOLR_CORE, Environment.getRequiredVar(SOLR_CORE));
     }
 
     @Override
