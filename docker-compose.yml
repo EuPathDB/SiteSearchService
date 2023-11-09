@@ -7,7 +7,7 @@ services:
   orthosearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr
       SOLR_CORE: orthosearch
     networks:
       - internal
@@ -22,7 +22,7 @@ services:
   edasearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr
       SOLR_CORE: edasearch
     networks:
       - internal
@@ -37,7 +37,7 @@ services:
   sitesearch:
     image: veupathdb/site-search:${SITESEARCH_TAG:-latest}
     environment:
-      SOLR_URL: http://${SOLR_URL:-solr}:${SOLR_PORT:-8983}/solr
+      SOLR_URL: http://solr:${SOLR_PORT:-8983}/solr
       SOLR_CORE: site_search
     networks:
       - internal
